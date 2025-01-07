@@ -5,7 +5,6 @@ import {
   _slippage,
   _tip,
   connection,
-  PRIVATE_KEY,
   TG_BOT_TOKEN,
 } from "./config/config";
 import {

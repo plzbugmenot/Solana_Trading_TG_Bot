@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import { Commitment, Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { Commitment, Connection, PublicKey } from "@solana/web3.js";
 import { Metaplex } from "@metaplex-foundation/js";
 dotenv.config();
 
@@ -7,8 +7,6 @@ export const rpcUrl: string =
   process.env.RPC_URL || "https://api.mainnet-beta.solana.com";
 export const wssUrl: string =
   process.env.WSS_URL || "ws://api.mainnet-beta.solana.com";
-
-export const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
 
 export const connection = new Connection(rpcUrl, { wsEndpoint: wssUrl });
 export const metaplex = new Metaplex(connection);
