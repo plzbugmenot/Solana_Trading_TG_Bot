@@ -2,14 +2,12 @@
   "name": "telegram-bot",
   "version": "1.0.0",
   "main": "index.ts",
-  "repository": "https://github.com/plzbugmenot/TG-bot-init.git",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node ./src/index.ts",
+    "start": "node ./dist/index.js",
     "build": "tsc",
     "clean": "tsc --build --clean",
-    "dev": "nodemon ./src/index.ts",
-    "test": "ts-node ./src/test.ts"
+    "dev": "nodemon ./src/index.ts"
   },
   "dependencies": {
     "@metaplex-foundation/js": "^0.20.1",
