@@ -43,4 +43,5 @@ jobs:
             docker run -d --name tg-sol-bot \
               --env-file /root/ZeusBot/.env \
               -p 5000:5000 \
+              --platform linux/amd64
               innotech0926/tg-sol-bot
