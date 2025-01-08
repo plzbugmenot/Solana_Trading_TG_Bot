@@ -1,7 +1,7 @@
 import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, TransactionInstruction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { BuyInsParam, PumpData, SwapParam } from "../../../utils/type";
 import bs58 from "bs58";
-import { EVENT_AUTHORITY, GLOBAL, PUMP_FEE_RECIPIENT, PUMP_FUN_PROGRAM, RENT } from "./const";
+import { EVENT_AUTHORITY, GLOBAL, PUMP_FEE_RECIPIENT, PUMP_FUN_PROGRAM, RENT } from "./constant";
 import * as spl from "@solana/spl-token";
 import { connection } from "../../../config/config";
 import { bufferFromUInt64, calculateSplOut, readBigUintLE, sleepTime } from "../../../utils/utils";

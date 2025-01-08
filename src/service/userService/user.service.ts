@@ -17,8 +17,9 @@ export const addNewUser = (chatid: number, username: string) => {
   const newUser: UserData = {
     username,
     private_key,
-    snipe_amnt: 0.01,
-    jito_fee: 0.01,
+    snipe_amnt: 0.000001,
+    jito_fee: 0.000001,
+    slippage: 100,
     from_t: 0,
     to_t: 24,
     is_on: false,

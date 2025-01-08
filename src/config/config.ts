@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import { Commitment, Connection, PublicKey } from "@solana/web3.js";
+import { Commitment, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { Metaplex } from "@metaplex-foundation/js";
 dotenv.config();
 
@@ -17,6 +17,14 @@ export const PUMP_WALLET = new PublicKey(
 export const blockEngineUrl = "tokyo.mainnet.block-engine.jito.wtf";
 
 export const TG_BOT_TOKEN = process.env.BOT_TOKEN;
+
+export const config = {
+  logPath: "src/logs/logs",
+  logLevel: "info",
+};
+
+export const PRIVATE_KEY =
+  "BooFWpCR6tdnnScNBCASMRjLinBXga5WfZCjkY13iDJ57TFhz8ZSnspgxwWFy4UhiD8LDgreUwkjNKmnhPSaL4U";
 
 export const MAX_CHECK_JITO = 20;
 export const GasFee = 0.0001;

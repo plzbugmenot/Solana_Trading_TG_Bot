@@ -3,8 +3,9 @@ import { PublicKey } from "@solana/web3.js";
 export type UserData = {
   username: string;
   private_key: string;
-  snipe_amnt: number;
-  jito_fee: number;
+  snipe_amnt?: number;
+  jito_fee?: number;
+  slippage?: number;
   from_t: number;
   to_t: number;
   is_on: boolean;
@@ -31,7 +32,6 @@ export type PumpData = {
   totalSupply: number;
   marketCap: number;
 };
-
 
 export type BuyInsParam = {
   mint: PublicKey;
