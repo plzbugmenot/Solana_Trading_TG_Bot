@@ -6,4 +6,8 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 RUN npm run build
-RUN npm start
+
+# Expose port 5000
+EXPOSE 5000
+# Start Nginx
+CMD ["npm", "start"]
