@@ -1,5 +1,5 @@
 # Step 1: Build the React app
-FROM node:18 AS builder
+# FROM node:18 AS builder
 FROM --platform=linux/amd64 alpine:latest 
 
 WORKDIR /app
