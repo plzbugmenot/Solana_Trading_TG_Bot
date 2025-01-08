@@ -7,7 +7,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Expose port 80
+# Expose port 5000
 EXPOSE 5000
 # Start Nginx
 CMD ["npm", "start"]
