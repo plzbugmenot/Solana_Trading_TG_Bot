@@ -41,7 +41,7 @@ jobs:
             docker stop tg-sol-bot || true
             docker rm tg-sol-bot || true
             docker run -d --name tg-sol-bot \
+              --platform linux/amd64/v8 \
               --env-file /root/ZeusBot/.env \
               -p 5000:5000 \
-              --platform linux/amd64/v8 \
               innotech0926/tg-sol-bot
