@@ -28,6 +28,8 @@ export enum BotCaption {
   SET_PK = `🔑 Private KEY \n\n<i>💲 Enter Wallet Private KEY</i>`,
 
   SET_DES = `⚙ User Setting.\nYou can set any settings on here. You can set any settings on here.`,
+
+  SWAP_FAILED = `⚠️ Swap Failed ⚠️`,
 }
 
 export const HTML_MODE = { parse_mode: "HTML" };
@@ -43,9 +45,7 @@ export const inline_keyboard_close = [
   [
     {
       text: "❌ Close",
-      callback_data: JSON.stringify({
-        command: BotCallBack.DISMISS_COMMAND,
-      }),
+      callback_data: BotCallBack.DISMISS_COMMAND,
     },
   ],
 ];
@@ -62,4 +62,4 @@ export const BotMenu = [
   { command: "help", description: "❓ Help" },
 ];
 
-export const AutoSwapAmount = [0.00001, 0.00002]
+export const AutoSwapAmount = [0.00001, 0.00002];

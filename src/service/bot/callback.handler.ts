@@ -29,6 +29,7 @@ export const callbackQueryHandler = async (
     let Set_COMMAND;
     switch (data) {
       case BotCallBack.DISMISS_COMMAND:
+        console.log("DISMISS_COMMAND");
         bot.deleteMessage(chatId, messageId);
         return;
 

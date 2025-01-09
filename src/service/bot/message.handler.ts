@@ -114,6 +114,7 @@ export const messageHandler = async (
         await sendTokenInfoMsg(bot, msg.chat.id, messageText);
       } else {
         // bot.sendMessage(chatId, BotCaption.strInvalidSolanaTokenAddress);
+        return;
       }
     }
   } catch (error) {
@@ -127,10 +128,16 @@ export const sendTokenInfoMsg = async (
   ca: string
 ) => {
   const tokenInfo = await getTokenInfoFromMint(ca);
-  // console.log("new token info", tokenInfo);
-  const Info = `💎 ${tokenInfo.name.toUpperCase()} (<b>${tokenInfo.symbol}</b>)
-📝 <code>${ca}</code>\n
-💰 Please enter the amount of <b>${tokenInfo.symbol}</b> you want to swap.`;
+  let Info = "";
+  // TODO no meta data case:
+  if (tokenInfo)
+    Info += `💎 ${tokenInfo.name.toUpperCase()} (<b>${tokenInfo.symbol}</b>)
+📝 <code>${ca}</code>\n`;
+  else Info += "⚠ Missing Metadata ⚠\n";
+  Info += `\n💰 Please enter the amount of <b>${
+    tokenInfo?.symbol || "Token"
+  }</b> you want to swap.`;
+
   const endpoint = "_" + ca;
   const inline_keyboard = [
     [

@@ -11,6 +11,7 @@ import { connection, msgService } from "../../config/config";
 import { sendSwapTxMsg } from "../bot/message.handler";
 import TelegramBot from "node-telegram-bot-api";
 import { BotMessageService } from "../msgService/msgService";
+import { BotCaption } from "../../config/constants";
 
 const Pumpfun_API = "https://frontend-api.pump.fun/coins/";
 export const swap = async (swapParam: SwapParam) => {
@@ -41,8 +42,8 @@ export const swap = async (swapParam: SwapParam) => {
     vTxn.sign([wallet]);
     await simulateTxn(vTxn);
     return await confirmVtxn(vTxn);
-  } catch (e) {
-    console.log("Error while swap txn");
+  } catch (e: any) {
+    console.log("Error while swap txn", e.message || "");
   }
 };
 
@@ -72,7 +73,7 @@ export const buySwap = async (
   // console.log("3");
   if (Number(solBal) <= swapAmount + _tip_tmp + 0.0003) {
     const res_msg = `⚠️ You don't have enough SOL to complete this transaction.⚠️\n Please top up your SOL balance.\nCurrent SOL balance: ${solBal} SOL`;
-    const m_g = await bot.sendMessage(chat_id, `Set as ${res_msg}`);
+    const m_g = await bot.sendMessage(chat_id, `${res_msg}`);
     return;
   }
   // console.log("4");
@@ -86,6 +87,10 @@ export const buySwap = async (
   };
   // console.log("5");
   const txHash = await swap(swapParam);
+  if (!txHash) {
+    await bot.sendMessage(chat_id, BotCaption.SWAP_FAILED);
+    return;
+  }
   // console.log("6");
   const swapMsgId = await sendSwapTxMsg(bot, chat_id, txHash);
   // console.log("7");

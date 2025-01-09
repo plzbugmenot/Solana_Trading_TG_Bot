@@ -25,12 +25,13 @@ export const copy2clipboard = (text: string) => {
 };
 
 export const isValidSolanaAddress = async (ca: string) => {
-  const contractAddressMatch = /([1-9A-HJ-NP-Za-km-z]{32,44})/;
-  const CA_Match = ca.match(contractAddressMatch);
+  // Remove any whitespace and potential URL components
+  const cleanCA = ca.trim().split("/").pop() || "";
 
-  if (!CA_Match) return false;
+  // Solana address regex pattern - matches 32-44 base58 characters
+  const contractAddressMatch = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-  return true;
+  return contractAddressMatch.test(ca);
 };
 
 export async function getWalletTokenAccount(
@@ -89,9 +90,14 @@ export function calculateSplOut(pumpData: PumpData, solIn: number): number {
 }
 
 export const getTokenInfoFromMint = async (ca: string) => {
-  const mintAddress = new PublicKey(ca);
-  const metadata = await metaplex.nfts().findByMint({ mintAddress });
-  return metadata;
+  try {
+    const mintAddress = new PublicKey(ca);
+    const metadata = await metaplex.nfts().findByMint({ mintAddress });
+    return metadata;
+  } catch (error) {
+    console.error(`Error fetching token info: missing metadata ${ca}`);
+    return null;
+  }
 };
 
 export async function simulateTxn(txn: VersionedTransaction) {
