@@ -1,16 +1,12 @@
 import { PublicKey } from "@solana/web3.js";
 
 export type UserData = {
+  userid: number;
   username: string;
   private_key: string;
   snipe_amnt?: number;
   jito_fee?: number;
   slippage?: number;
-  from_t: number;
-  to_t: number;
-  is_on: boolean;
-  t_on: boolean;
-  msg_id?: number;
 };
 
 export type SwapParam = {

@@ -8,9 +8,9 @@ export enum BotCallBack {
   T_FROM_COMMAND = "t_from_message",
   T_TO_COMMAND = "t_to_message",
   DISMISS_COMMAND = "dismiss_message",
-  SWAP_SOL_01 = "swap_sol_01",
-  SWAP_SOL_02 = "swap_sol_02",
-  SWAP_SOL_x = "swap_sol_x",
+  SWAP_SOL_01 = "swapsol_1",
+  SWAP_SOL_02 = "swapsol_2",
+  SWAP_SOL_x = "swapsol_x",
 }
 
 export enum BotCaption {
@@ -61,3 +61,5 @@ export const BotMenu = [
   },
   { command: "help", description: "❓ Help" },
 ];
+
+export const AutoSwapAmount = [0.00001, 0.00002]

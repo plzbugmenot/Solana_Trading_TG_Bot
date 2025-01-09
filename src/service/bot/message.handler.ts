@@ -1,23 +1,29 @@
 import TelegramBot from "node-telegram-bot-api";
-import { userdataList } from "../userService/user.service";
 import { getSettingCaption } from "../setting/setting";
 import {
+  AutoSwapAmount,
   BotCallBack,
   BotCaption,
-
 } from "../../config/constants";
-import { getTokenInfoFromMint, isValidSolanaAddress } from "../../utils/utils";
+import {
+  getTokenInfoFromMint,
+  isValidSolanaAddress,
+  txnLink,
+} from "../../utils/utils";
 import {
   _is_buy,
   _slippage,
   _tip,
   connection,
+  msgService,
   PRIVATE_KEY,
+  userService,
 } from "../../config/config";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 import { SwapParam } from "../../utils/type";
-import { swap } from "../swap/swap";
+import { buySwap, swap } from "../swap/swap";
+import logger from "../../logs/logger";
 
 export const messageHandler = async (
   bot: TelegramBot,
@@ -25,7 +31,7 @@ export const messageHandler = async (
 ) => {
   try {
     const messageText = msg.text;
-    const userData = userdataList.get(msg.chat.id);
+    const userData = await userService.getUserById(msg.chat.id);
     if (!userData) return;
     const { reply_to_message } = msg;
     if (!messageText) return;
@@ -41,64 +47,55 @@ export const messageHandler = async (
       let isSwap: boolean = false;
       if (isNumber) {
         const value = Number(messageText);
-        console.log("value", value);
         switch (text) {
           case BotCaption.SET_JITOFEE.replace(/<[^>]*>/g, ""):
-            console.log("SET_JITOFEE", value);
+            // console.log("SET_JITOFEE", value);
             userData.jito_fee = value;
-            userdataList.set(msg.chat.id, userData);
+            await userService.updateUser(msg.chat.id, {
+              jito_fee: value,
+            });
             res_msg = `Set to ${value}`;
             break;
           case BotCaption.SET_SNIPE_AMOUNT.replace(/<[^>]*>/g, ""):
-            console.log("SET_SNIPE_AMOUNT", value);
+            // console.log("SET_SNIPE_AMOUNT", value);
             userData.snipe_amnt = value;
-            userdataList.set(msg.chat.id, userData);
+            await userService.updateUser(msg.chat.id, {
+              snipe_amnt: value,
+            });
             res_msg = `Set to ${value}`;
             break;
           case BotCaption.SET_SLIPPAGE.replace(/<[^>]*>/g, ""):
-            console.log("SET_SLIPPAGE", value);
+            // console.log("SET_SLIPPAGE", value);
             userData.slippage = value;
-            userdataList.set(msg.chat.id, userData);
+            await userService.updateUser(msg.chat.id, {
+              slippage: value,
+            });
             res_msg = `Set to ${value}`;
             break;
           case BotCaption.strInputSwapSolAmount.replace(/<[^>]*>/g, ""):
-            console.log("SET_SOL_AMOUNT", value);
+            // console.log("strInputSwapSolAmount", value);
             isSwap = true;
-            const private_key = userData?.private_key || PRIVATE_KEY;
-
-            console.log("1");
-            // check balance
-            const wallet = Keypair.fromSecretKey(bs58.decode(private_key));
-            console.log("2");
-            const solBal = await connection.getBalance(wallet.publicKey);
-            const _tip_tmp = userData?.jito_fee || _tip;
-            console.log("3");
-            if (Number(solBal) <= value + _tip_tmp + 0.003) {
-              res_msg = `⚠️ You don't have enough SOL to complete this transaction.⚠️\n Please top up your SOL balance.\nCurrent SOL balance: ${solBal} SOL`;
-              const m_g = await bot.sendMessage(msg.chat.id, `Set as ${res_msg}`);
+            const tmpMsg = await msgService.getMessageById(
+              Number(reply_message_id),
+              Number(userData.userid)
+            );
+            // const sss = await msgService.getMessgeByFilter({
+            //   userid: Number(userData.userid),
+            //   message_id: Number(reply_message_id),
+            // });
+            const ca = tmpMsg?.contractAddress;
+            if (!ca) {
+              logger.error("ca is null");
               return;
             }
-            console.log("4");
-            const swapParam: SwapParam = {
-              private_key: private_key,
-              mint: new PublicKey(messageText),
-              amount: value,
-              slippage: userData?.slippage || _slippage,
-              tip: userData?.jito_fee || _tip,
-              is_buy: _is_buy,
-            };
-            console.log("5");
-            const txHash = await swap(swapParam);
-            console.log("6");
-            sendSwapTxMsg(bot, msg.chat.id, txHash);
-            console.log("7");
+            buySwap(bot, msg.chat.id, userData, value, ca);
             break;
         }
       }
       if (!isSwap) {
-        console.log("8");
-        const inline_keyboard = await getSettingCaption(userData);
-        const settingMsgId = userData.msg_id;
+        const updated_userData = await userService.getUserById(userData.userid);
+        const inline_keyboard = await getSettingCaption(updated_userData);
+        const settingMsgId = userData.setting_msg_id;
         const m_g = await bot.sendMessage(msg.chat.id, `Set as ${res_msg}`);
         setTimeout(() => {
           bot.deleteMessage(msg.chat.id, m_g.message_id);
@@ -106,13 +103,12 @@ export const messageHandler = async (
         bot.editMessageReplyMarkup(
           { inline_keyboard },
           {
-            message_id: Number(settingMsgId),
+            message_id: settingMsgId,
             chat_id: msg.chat.id,
           }
         );
       }
-    }
-    else{
+    } else {
       const isCA = await isValidSolanaAddress(messageText);
       if (isCA) {
         await sendTokenInfoMsg(bot, msg.chat.id, messageText);
@@ -132,34 +128,53 @@ export const sendTokenInfoMsg = async (
 ) => {
   const tokenInfo = await getTokenInfoFromMint(ca);
   // console.log("new token info", tokenInfo);
-  const Info = `New Token Address detected.
-${tokenInfo.name} (<b>${tokenInfo.symbol}</b>)
-Please enter the amount of <b>${tokenInfo.symbol}</b> you want to buy.`;
-
+  const Info = `💎 ${tokenInfo.name.toUpperCase()} (<b>${tokenInfo.symbol}</b>)
+📝 <code>${ca}</code>\n
+💰 Please enter the amount of <b>${tokenInfo.symbol}</b> you want to swap.`;
+  const endpoint = "_" + ca;
   const inline_keyboard = [
     [
-      { text: "💰 Buy 0.1 SOL", callback_data: BotCallBack.SWAP_SOL_01 },
-      { text: "💰 Buy 0.3 SOL", callback_data: BotCallBack.SWAP_SOL_02 },
-      { text: "💰 Buy X SOL", callback_data: BotCallBack.SWAP_SOL_x },
+      {
+        text: `💰 Buy ${AutoSwapAmount[0]} SOL`,
+        callback_data: BotCallBack.SWAP_SOL_01 + endpoint,
+      },
+      {
+        text: `💰 Buy ${AutoSwapAmount[1]} SOL`,
+        callback_data: BotCallBack.SWAP_SOL_02 + endpoint,
+      },
+      {
+        text: "💰 Buy X SOL",
+        callback_data: BotCallBack.SWAP_SOL_x + endpoint,
+      },
+    ],
+    [
+      {
+        text: "❌ Close",
+        callback_data: BotCallBack.DISMISS_COMMAND,
+      },
     ],
   ];
 
-  bot.sendMessage(chatId, Info, {
+  const sendMsg = await bot.sendMessage(chatId, Info, {
     parse_mode: "HTML",
     disable_web_page_preview: true,
     reply_markup: {
       inline_keyboard,
     },
   });
+  // console.log("sendMsg", sendMsg.message_id);
 };
 
-export const sendSwapTxMsg = (
+export const sendSwapTxMsg = async (
   bot: TelegramBot,
   chatId: number,
   txHash: string
 ) => {
-  bot.sendMessage(chatId, `https://solscan.io/tx/${txHash}`, {
+  const msg = `💰 Swap successful!
+${txnLink(txHash)}`;
+  const swapAlarm = await bot.sendMessage(chatId, msg, {
     parse_mode: "HTML",
     disable_web_page_preview: false,
   });
+  return swapAlarm.message_id;
 };

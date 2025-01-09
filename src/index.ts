@@ -4,23 +4,18 @@ import {
   _slippage,
   _tip,
   TG_BOT_TOKEN,
+  userService,
 } from "./config/config";
-import {
-  addNewUser,
-  isNewUser,
-  userdataList,
-} from "./service/userService/user.service";
 import { getSettingCaption } from "./service/setting/setting";
 import { callbackQueryHandler } from "./service/bot/callback.handler";
-import {
-  messageHandler,
-  sendTokenInfoMsg,
-} from "./service/bot/message.handler";
-import { isValidSolanaAddress } from "./utils/utils";
+import { messageHandler } from "./service/bot/message.handler";
+import { addNewUser, isValidSolanaAddress } from "./utils/utils";
 import logger from "./logs/logger";
 import { BotCaption, BotMenu } from "./config/constants";
+import { connectDatabase } from "./config/db";
 
 const start_bot = () => {
+  connectDatabase();
   logger.info("🚀 Starting bot...");
   // Create a bot that uses 'polling' to fetch new updates
   if (!TG_BOT_TOKEN) return;
@@ -31,7 +26,8 @@ const start_bot = () => {
     bot.onText(/\/start/, async (msg: TelegramBot.Message) => {
       const username = msg.chat.username;
       if (!username) return;
-      if (isNewUser(msg.chat.id)) addNewUser(msg.chat.id, username);
+      const isNewUser = await userService.isNewUser(msg.chat.id);
+      if (isNewUser) await addNewUser(msg.chat.id, username);
       const caption = `🎉 @${msg.chat.username}, ${BotCaption.strWelcome}`;
       bot.sendMessage(msg.chat.id, caption, {
         parse_mode: "HTML",
@@ -43,8 +39,9 @@ const start_bot = () => {
       try {
         const username = msg.chat.username;
         if (!username) return;
-        if (isNewUser(msg.chat.id)) addNewUser(msg.chat.id, username);
-        const userData = userdataList.get(msg.chat.id);
+        const isNewUser = await userService.isNewUser(msg.chat.id);
+        if (isNewUser) await addNewUser(msg.chat.id, username);
+        const userData = await userService.getUserById(msg.chat.id);
         if (!userData) return;
         const inline_keyboard = await getSettingCaption(userData);
         const sentMsg = await bot.sendMessage(msg.chat.id, BotCaption.SET_DES, {
@@ -54,9 +51,10 @@ const start_bot = () => {
             inline_keyboard,
           },
         });
-        if (userData.msg_id) bot.deleteMessage(msg.chat.id, userData.msg_id);
-        userData.msg_id = sentMsg.message_id;
-        userdataList.set(msg.chat.id, userData);
+        if (userData.setting_msg_id) bot.deleteMessage(msg.chat.id, userData.setting_msg_id);
+        userService.updateUser(msg.chat.id, {
+          setting_msg_id: sentMsg.message_id,
+        });
       } catch (e) {
         console.log(e);
       }

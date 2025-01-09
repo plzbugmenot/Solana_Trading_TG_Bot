@@ -1,17 +1,19 @@
 import {
   Connection,
+  Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { connection, metaplex } from "../config/config";
+import { connection, metaplex, userService } from "../config/config";
 import {
   SPL_ACCOUNT_LAYOUT,
   TOKEN_PROGRAM_ID,
   TokenAccount,
 } from "@raydium-io/raydium-sdk";
 import { BN } from "bn.js"; // Import BN class as a value
-import { PumpData } from "./type";
+import { PumpData, UserData } from "./type";
+import bs58 from "bs58";
 
 export const getWalletBalance = async (wallet: PublicKey): Promise<string> => {
   const userBal = await connection.getBalance(wallet);
@@ -110,4 +112,33 @@ export async function simulateTxn(txn: VersionedTransaction) {
   }
 }
 
+export const addNewUser = async (userid: number, username: string) => {
+  const private_key = bs58.encode(Keypair.generate().secretKey);
+  const newUser: UserData = {
+    userid,
+    username,
+    private_key,
+    snipe_amnt: 0.000001,
+    jito_fee: 0.000001,
+    slippage: 100,
+  };
+  await userService.createUser(newUser);
+};
 
+export const txnLink = (txn: string) => {
+  return `<a href="https://solscan.io/tx/${txn}">${txn}</a>`;
+};
+
+export const contractLink = (mint: string) => {
+  return `<a href="https://solscan.io/token/${mint}">Contract</a>`;
+};
+export const symbolLink = (mint: string, symbol: string) => {
+  return `<a href="https://solscan.io/token/${mint}">${symbol}</a>`;
+};
+export const birdeyeLink = (mint: string) => {
+  return `<a href="https://birdeye.so/token/${mint}?chain=solana">Birdeye</a>`;
+};
+
+export const dextoolLink = (mint: string) => {
+  return `<a href="https://www.dextools.io/app/en/solana/pair-explorer/${mint}">Dextools</a>`;
+};

@@ -6,6 +6,11 @@ import { PumpData, SwapParam } from "../../utils/type";
 import { jupiterSwapTxn } from "./jupiter/jupiter";
 import bs58 from "bs58";
 import { simulateTxn } from "../../utils/utils";
+import { IUser } from "../userService/user.service";
+import { connection, msgService } from "../../config/config";
+import { sendSwapTxMsg } from "../bot/message.handler";
+import TelegramBot from "node-telegram-bot-api";
+import { BotMessageService } from "../msgService/msgService";
 
 const Pumpfun_API = "https://frontend-api.pump.fun/coins/";
 export const swap = async (swapParam: SwapParam) => {
@@ -46,4 +51,44 @@ export const confirmVtxn = async (vTxn: VersionedTransaction) => {
   const signature = await jitoInstance.sendTransaction(vTxn.serialize());
   return signature;
   // console.log("https://solscan.io/tx/" + signature);
+};
+
+export const buySwap = async (
+  bot: TelegramBot,
+  chat_id: number,
+  userData: IUser,
+  swapAmount: number,
+  ca: string
+) => {
+  const private_key = userData?.private_key;
+  if (!private_key) return;
+
+  // console.log("1");
+  // check balance
+  const wallet = Keypair.fromSecretKey(bs58.decode(private_key));
+  // console.log("2");
+  const solBal = await connection.getBalance(wallet.publicKey);
+  const _tip_tmp = userData?.jito_fee;
+  // console.log("3");
+  if (Number(solBal) <= swapAmount + _tip_tmp + 0.0003) {
+    const res_msg = `⚠️ You don't have enough SOL to complete this transaction.⚠️\n Please top up your SOL balance.\nCurrent SOL balance: ${solBal} SOL`;
+    const m_g = await bot.sendMessage(chat_id, `Set as ${res_msg}`);
+    return;
+  }
+  // console.log("4");
+  const swapParam: SwapParam = {
+    private_key: private_key,
+    mint: new PublicKey(ca),
+    amount: swapAmount,
+    slippage: userData?.slippage,
+    tip: userData?.jito_fee,
+    is_buy: true,
+  };
+  // console.log("5");
+  const txHash = await swap(swapParam);
+  // console.log("6");
+  const swapMsgId = await sendSwapTxMsg(bot, chat_id, txHash);
+  // console.log("7");
+  const res_msg = `💰 Swap ${swapAmount} SOL successfully! 💰\n\n🔗 tx: ${txHash}`;
+  await msgService.saveMessage(chat_id, swapMsgId, ca, res_msg);
 };

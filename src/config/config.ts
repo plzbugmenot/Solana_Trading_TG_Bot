@@ -1,12 +1,16 @@
 import * as dotenv from "dotenv";
 import { Commitment, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { Metaplex } from "@metaplex-foundation/js";
+import { UserServiceDB } from "../service/userService/user.service";
+import { BotMessageService } from "../service/msgService/msgService";
 dotenv.config();
 
 export const rpcUrl: string =
   process.env.RPC_URL || "https://api.mainnet-beta.solana.com";
 export const wssUrl: string =
   process.env.WSS_URL || "ws://api.mainnet-beta.solana.com";
+
+export const MONGO_URL = process.env.MONGO_URI || "";
 
 export const connection = new Connection(rpcUrl, { wsEndpoint: wssUrl });
 export const metaplex = new Metaplex(connection);
@@ -34,3 +38,6 @@ export const _slippage = 100; // 100 %
 export const _tip = 0.000001; // 0.000001 SOL
 export const _is_buy = true;
 export const _amount = 0.000001; // 0.000001 SOL
+
+export const userService = new UserServiceDB();
+export const msgService = new BotMessageService();

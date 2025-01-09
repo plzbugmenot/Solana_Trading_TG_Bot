@@ -1,6 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
-import { userdataList } from "../userService/user.service";
 import {
+  AutoSwapAmount,
   BotCallBack,
   BotCaption,
   inline_keyboard_close,
@@ -9,6 +9,8 @@ import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import { copy2clipboard } from "../../utils/utils";
 import { getSettingCaption } from "../setting/setting";
+import { msgService, userService } from "../../config/config";
+import { buySwap } from "../swap/swap";
 
 export const callbackQueryHandler = async (
   bot: TelegramBot,
@@ -16,12 +18,13 @@ export const callbackQueryHandler = async (
 ) => {
   try {
     const data = cb_query.data; // This contains your SWAP_SOL_01, SWAP_SOL_02 etc
-    console.log("cb_query.data => ", data);
+    // console.log("cb_query.data => ", data);
+    let ca = null;
     const chatId = cb_query.message?.chat.id;
     const messageId = cb_query.message?.message_id || 0;
     if (!data || !chatId) return;
 
-    const userData = userdataList.get(chatId);
+    const userData = await userService.getUserById(chatId);
     if (!userData) return;
     let Set_COMMAND;
     switch (data) {
@@ -47,19 +50,6 @@ export const callbackQueryHandler = async (
         });
         return;
 
-      case BotCallBack.RUN_COMMAND:
-        userData.is_on = !userData.is_on;
-        userdataList.set(chatId, userData);
-        const inline_keyboard = await getSettingCaption(userData);
-        bot.editMessageReplyMarkup(
-          { inline_keyboard },
-          {
-            chat_id: chatId,
-            message_id: messageId,
-          }
-        );
-        return;
-
       case BotCallBack.JITOFEE_COMMAND:
         Set_COMMAND = BotCaption.SET_JITOFEE;
         break;
@@ -76,28 +66,29 @@ export const callbackQueryHandler = async (
         Set_COMMAND = BotCaption.SET_SLIPPAGE;
         break;
 
-      case BotCallBack.SWAP_SOL_01:
-        console.log("SWAP_SOL_01");
-        return;
-
-      case BotCallBack.SWAP_SOL_02:
-        console.log("SWAP_SOL_02");
-        return;
-
-      case BotCallBack.SWAP_SOL_x:
-        Set_COMMAND = BotCaption.strInputSwapSolAmount;
-        break;
-
       default:
+        const detected_command = data.split("_");
+        if (detected_command[0] === "swapsol") {
+          ca = detected_command[2];
+          if (detected_command[1] === "x") {
+            Set_COMMAND = BotCaption.strInputSwapSolAmount;
+            break;
+          } else {
+            const idx = Number(detected_command[1]) - 1;
+            const swapAmount = AutoSwapAmount[idx];
+            buySwap(bot, chatId, userData, swapAmount, ca);
+          }
+        }
         return;
     }
 
-    bot.sendMessage(chatId, Set_COMMAND, {
+    const sendMsg = await bot.sendMessage(chatId, Set_COMMAND, {
       parse_mode: "HTML",
       reply_markup: {
         force_reply: true,
       },
     });
+    if (ca) msgService.saveMessage(sendMsg.message_id, chatId, ca);
   } catch (error) {
     console.log("-callbackQueryHandler-", error);
   }
