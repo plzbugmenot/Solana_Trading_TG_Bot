@@ -14,15 +14,10 @@ import {
   _is_buy,
   _slippage,
   _tip,
-  connection,
   msgService,
-  PRIVATE_KEY,
   userService,
 } from "../../config/config";
-import { Keypair, PublicKey } from "@solana/web3.js";
-import bs58 from "bs58";
-import { SwapParam } from "../../utils/type";
-import { buySwap, swap } from "../swap/swap";
+import { buySwap } from "../swap/swap";
 import logger from "../../logs/logger";
 
 export const messageHandler = async (
@@ -111,7 +106,12 @@ export const messageHandler = async (
     } else {
       const isCA = await isValidSolanaAddress(messageText);
       if (isCA) {
-        await sendTokenInfoMsg(bot, msg.chat.id, messageText);
+        const auto = userService.getAutoSetting(userData.userid);
+        if (auto) {
+          const swapAmount = userData.snipe_amnt;
+          console.log("auto swap", swapAmount);
+          buySwap(bot, msg.chat.id, userData, swapAmount, messageText);
+        } else await sendTokenInfoMsg(bot, msg.chat.id, messageText);
       } else {
         // bot.sendMessage(chatId, BotCaption.strInvalidSolanaTokenAddress);
         return;

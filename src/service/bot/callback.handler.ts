@@ -66,7 +66,22 @@ export const callbackQueryHandler = async (
       case BotCallBack.SLIPPAGE_COMMAND:
         Set_COMMAND = BotCaption.SET_SLIPPAGE;
         break;
-
+      case BotCallBack.AUTO_COMMAND:
+        await userService.updateAutoSetting(chatId, !userData.auto);
+        const updated_userData = await userService.getUserById(chatId);
+        const inline_keyboard = await getSettingCaption(updated_userData);
+        // console.log("inline_keyboard", inline_keyboard);
+        await bot.editMessageReplyMarkup(
+          { inline_keyboard },
+          {
+            message_id: updated_userData.setting_msg_id,
+            chat_id: chatId,
+          }
+        );
+        Set_COMMAND = updated_userData.auto
+          ? BotCaption.AUTO_SWAP_ON
+          : BotCaption.AUTO_SWAP_OFF;
+        break;
       default:
         const detected_command = data.split("_");
         if (detected_command[0] === "swapsol") {

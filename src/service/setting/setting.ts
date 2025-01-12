@@ -1,13 +1,15 @@
 import { Keypair } from "@solana/web3.js";
-import { UserData } from "../../utils/type";
 import bs58 from "bs58";
 import { getWalletBalance } from "../../utils/utils";
 import { BotCallBack } from "../../config/constants";
+import { IUser } from "../userService/user.service";
 
-export const getSettingCaption = async (userData: UserData) => {
+export const getSettingCaption = async (userData: IUser) => {
   const wallet = Keypair.fromSecretKey(bs58.decode(userData.private_key));
   // console.log(userData);
   const solBal = await getWalletBalance(wallet.publicKey);
+  const auto = userData.auto ? "✅" : "❌";
+  const snipe_amnt = userData.snipe_amnt;
 
   const inline_keyboard_setting = [
     [
@@ -18,7 +20,11 @@ export const getSettingCaption = async (userData: UserData) => {
     ],
     [
       {
-        text: `💰 Swap_Amount: ${userData.snipe_amnt} SOL`,
+        text: "🤖 Auto Buy/Sell " + auto,
+        callback_data: BotCallBack.AUTO_COMMAND,
+      },
+      {
+        text: `💰 Swap Auto Amount {${snipe_amnt} SOL`,
         callback_data: BotCallBack.SNIPE_AMOUNT_COMMAND,
       },
     ],

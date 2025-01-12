@@ -7,7 +7,7 @@ import { jupiterSwapTxn } from "./jupiter/jupiter";
 import bs58 from "bs58";
 import { simulateTxn } from "../../utils/utils";
 import { IUser } from "../userService/user.service";
-import { connection, msgService } from "../../config/config";
+import { connection, msgService, userService } from "../../config/config";
 import { sendSwapTxMsg } from "../bot/message.handler";
 import TelegramBot from "node-telegram-bot-api";
 import { BotMessageService } from "../msgService/msgService";
@@ -96,4 +96,7 @@ export const buySwap = async (
   // console.log("7");
   const res_msg = `💰 Swap ${swapAmount} SOL successfully! 💰\n\n🔗 tx: ${txHash}`;
   await msgService.saveMessage(chat_id, swapMsgId, ca, res_msg);
+  await userService.addCA(userData.userid, ca);
+
+
 };

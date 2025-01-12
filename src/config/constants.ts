@@ -8,6 +8,9 @@ export enum BotCallBack {
   T_FROM_COMMAND = "t_from_message",
   T_TO_COMMAND = "t_to_message",
   DISMISS_COMMAND = "dismiss_message",
+  AUTO_COMMAND = "auto_message",
+  AUTO_AMOUNT_COMMAND = "auto_amount_message",
+
   SWAP_SOL_01 = "swapsol_1",
   SWAP_SOL_02 = "swapsol_2",
   SWAP_SOL_x = "swapsol_x",
@@ -30,6 +33,9 @@ export enum BotCaption {
   SET_DES = `⚙ User Setting.\nYou can set any settings on here. You can set any settings on here.`,
 
   SWAP_FAILED = `⚠️ Swap Failed ⚠️`,
+
+  AUTO_SWAP_ON = "🔔 Auto Swap ON",
+  AUTO_SWAP_OFF = "🔕 Auto Swap OFF",
 }
 
 export const HTML_MODE = { parse_mode: "HTML" };
@@ -58,6 +64,10 @@ export const BotMenu = [
   {
     command: "setting",
     description: "⚙️ setting",
+  },
+  {
+    command: "position",
+    description: "💰 Position",
   },
   { command: "help", description: "❓ Help" },
 ];

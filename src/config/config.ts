@@ -40,4 +40,5 @@ export const _is_buy = true;
 export const _amount = 0.000001; // 0.000001 SOL
 
 export const userService = new UserServiceDB();
+
 export const msgService = new BotMessageService();

@@ -15,6 +15,48 @@ import { BN } from "bn.js"; // Import BN class as a value
 import { PumpData, UserData } from "./type";
 import bs58 from "bs58";
 
+export const formatNumber = (num: number): string => {
+  if (typeof num !== "number" || isNaN(num)) return "0";
+  if (num === null) return "0.00";
+  const absNum = Math.abs(num);
+  if (absNum >= 1000000000) {
+    return (Math.floor(absNum / 10000000) / 100).toFixed(2) + "B";
+  } else if (absNum >= 1000000) {
+    return (Math.floor(absNum / 10000) / 100).toFixed(2) + "M";
+  } else if (absNum >= 1000) {
+    return (Math.floor(absNum / 10) / 100).toFixed(2) + "K";
+  }
+
+  if (absNum < 1) {
+    const str = num.toString();
+    const [, decimal] = str.split(".");
+    let zeroCount = 0;
+    if (!decimal) return num.toFixed(2);
+    for (const char of decimal) {
+      if (char === "0") {
+        zeroCount++;
+      } else {
+        break;
+      }
+    }
+
+    if (zeroCount >= 2) {
+      const subscript = zeroCount
+        .toString()
+        .split("")
+        .map((n) => String.fromCharCode(0x2080 + parseInt(n)))
+        .join("");
+
+      const remainingDigits = parseFloat(
+        `0.${decimal.slice(zeroCount)}`
+      ).toFixed(4);
+      return `0.0${subscript}${remainingDigits.slice(2)}`;
+    }
+    return num.toFixed(2);
+  }
+  return num.toFixed(2);
+};
+
 export const getWalletBalance = async (wallet: PublicKey): Promise<string> => {
   const userBal = await connection.getBalance(wallet);
   const solBal = userBal / LAMPORTS_PER_SOL;
@@ -136,7 +178,7 @@ export const txnLink = (txn: string) => {
 };
 
 export const contractLink = (mint: string) => {
-  return `<a href="https://solscan.io/token/${mint}">Contract</a>`;
+  return `<a href="https://solscan.io/token/${mint}">${mint}</a>`;
 };
 export const symbolLink = (mint: string, symbol: string) => {
   return `<a href="https://solscan.io/token/${mint}">${symbol}</a>`;
@@ -147,4 +189,8 @@ export const birdeyeLink = (mint: string) => {
 
 export const dextoolLink = (mint: string) => {
   return `<a href="https://www.dextools.io/app/en/solana/pair-explorer/${mint}">Dextools</a>`;
+};
+
+export const shortenAddress = (address: string, chars = 4): string => {
+  return `${address.slice(0, chars)}...${address.slice(-chars)}`;
 };

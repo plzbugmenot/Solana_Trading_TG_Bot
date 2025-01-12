@@ -9,10 +9,13 @@ import {
 import { getSettingCaption } from "./service/setting/setting";
 import { callbackQueryHandler } from "./service/bot/callback.handler";
 import { messageHandler } from "./service/bot/message.handler";
-import { addNewUser, isValidSolanaAddress } from "./utils/utils";
+import { addNewUser, contractLink, shortenAddress } from "./utils/utils";
 import logger from "./logs/logger";
 import { BotCaption, BotMenu } from "./config/constants";
 import { connectDatabase } from "./config/db";
+import { getSnipingTokens, getWalletTokens } from "./service/token/token";
+import { Keypair } from "@solana/web3.js";
+import bs58 from "bs58";
 
 const start_bot = () => {
   connectDatabase();
@@ -51,7 +54,8 @@ const start_bot = () => {
             inline_keyboard,
           },
         });
-        if (userData.setting_msg_id) bot.deleteMessage(msg.chat.id, userData.setting_msg_id);
+        if (userData.setting_msg_id)
+          bot.deleteMessage(msg.chat.id, userData.setting_msg_id);
         userService.updateUser(msg.chat.id, {
           setting_msg_id: sentMsg.message_id,
         });
@@ -61,6 +65,25 @@ const start_bot = () => {
     });
     bot.onText(/\/help/, async (msg: TelegramBot.Message) => {
       bot.sendMessage(msg.chat.id, BotCaption.HelpCaption);
+    });
+    bot.onText(/\/position/, async (msg: TelegramBot.Message) => {
+      const userData = await userService.getUserById(msg.chat.id);
+      if (!userData) return;
+      const wallet = Keypair.fromSecretKey(bs58.decode(userData.private_key));
+      // const snipingTokens = await getSnipingTokens(userData.userid, wallet);
+      const snipingTokens = await getWalletTokens(wallet);
+      const caption =
+        snipingTokens.length > 0
+          ? snipingTokens
+              .map((token) => {
+                return `🔥 ${contractLink(token.mint)} ${token.amount}`;
+              })
+              .join("\n")
+          : "No Sniping Tokens";
+      bot.sendMessage(msg.chat.id, caption, {
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+      });
     });
     bot.on("message", (msg: TelegramBot.Message) => {
       messageHandler(bot, msg);
