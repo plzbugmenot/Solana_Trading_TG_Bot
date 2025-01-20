@@ -1,3 +1,4 @@
+import TelegramBot from "node-telegram-bot-api";
 import * as dotenv from "dotenv";
 import { Commitment, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { Metaplex } from "@metaplex-foundation/js";
@@ -43,4 +44,14 @@ export const userService = new UserServiceDB();
 
 export const msgService = new BotMessageService();
 
-export const INVITE_LINK_HEADER = "https://t.me/zeussolbot";
+export const bot = new TelegramBot(TG_BOT_TOKEN!, { polling: true });
+
+let INVITE_LINK_HEADER: string;
+
+// Initialize the invite link
+(async () => {
+  const botInfo = await bot.getMe();
+  INVITE_LINK_HEADER = `https://t.me/${botInfo.username}`;
+})();
+
+export { INVITE_LINK_HEADER };

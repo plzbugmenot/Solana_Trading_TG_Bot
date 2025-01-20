@@ -6,7 +6,7 @@ export async function connectDatabase() {
     await mongoose.connect(MONGO_URL);
     console.log("🏬 Connected to MongoDB");
     await userService.loadAutoSettings();
-    console.log("🏬 Loaded auto settings");
+    console.log("⚙ Loaded auto settings");
     // console.log(userService.getAllAutoSettingsArray());
   } catch (error) {
     console.error("MongoDB connection error:", error);

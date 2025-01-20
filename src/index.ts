@@ -3,19 +3,14 @@ import {
   _is_buy,
   _slippage,
   _tip,
+  bot,
   TG_BOT_TOKEN,
   userService,
 } from "./config/config";
 import { getSettingCaption } from "./service/inline_key/setting";
 import { callbackQueryHandler } from "./service/bot/callback.handler";
 import { messageHandler } from "./service/bot/message.handler";
-import {
-  addNewUser,
-  contractLink,
-  hexToDec,
-  isReferralLink,
-  shortenAddress,
-} from "./utils/utils";
+import { contractLink, hexToDec } from "./utils/utils";
 import logger from "./logs/logger";
 import { BotCaption, BotMenu } from "./config/constants";
 import { connectDatabase } from "./config/db";
@@ -27,10 +22,7 @@ import { newUserCreateAction } from "./service/userService/newUsetAction";
 const start_bot = () => {
   connectDatabase();
   logger.info("🚀 Starting bot...");
-  // Create a bot that uses 'polling' to fetch new updates
-  if (!TG_BOT_TOKEN) return;
   try {
-    const bot = new TelegramBot(TG_BOT_TOKEN, { polling: true });
     bot.setMyCommands(BotMenu);
 
     // Handle plain /start command
@@ -63,6 +55,7 @@ const start_bot = () => {
             bot.sendMessage(chatId, BotCaption.strInvalidReferUser);
             return;
           }
+          if (refer_user.userid === userData.userid) return; // yourself refer
 
           await userService.setParent(userData.userid, ReferDecNumber);
           bot.sendMessage(

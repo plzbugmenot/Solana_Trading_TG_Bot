@@ -128,7 +128,6 @@ export class UserServiceDB {
   async setParent(userid: number, parentId: number): Promise<IUser | null> {
     const parentUser = await this.UserModel.findOne({ userid: parentId });
     const newLevel = Math.min((parentUser?.refer_level || 0) + 1, 5);
-    console.log("newLevel: ", newLevel);
     await this.UserModel.findOneAndUpdate(
       { userid: parentId },
       { $set: { refer_level: newLevel } },
