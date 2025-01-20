@@ -9,7 +9,13 @@ import {
 import { getSettingCaption } from "./service/inline_key/setting";
 import { callbackQueryHandler } from "./service/bot/callback.handler";
 import { messageHandler } from "./service/bot/message.handler";
-import { addNewUser, contractLink, shortenAddress } from "./utils/utils";
+import {
+  addNewUser,
+  contractLink,
+  hexToDec,
+  isReferralLink,
+  shortenAddress,
+} from "./utils/utils";
 import logger from "./logs/logger";
 import { BotCaption, BotMenu } from "./config/constants";
 import { connectDatabase } from "./config/db";
@@ -27,9 +33,49 @@ const start_bot = () => {
     const bot = new TelegramBot(TG_BOT_TOKEN, { polling: true });
     bot.setMyCommands(BotMenu);
 
-    bot.onText(/\/start/, async (msg: TelegramBot.Message) => {
+    // Handle plain /start command
+    bot.onText(/^\/start$/, async (msg: TelegramBot.Message) => {
+      const chatId = msg.chat.id;
       await newUserCreateAction(bot, msg);
     });
+
+    // Handle /start with referral code
+    bot.onText(
+      /\/start (.+)/,
+      async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
+        if (!match) return;
+
+        const chatId = msg.chat.id;
+        const referralCode = match[1];
+
+        const existingUser = await userService.getUserById(chatId);
+
+        if (!existingUser) {
+          await newUserCreateAction(bot, msg);
+
+          const userData = await userService.getUserById(chatId);
+          if (!userData) return;
+
+          const ReferDecNumber = hexToDec(referralCode);
+          const refer_user = await userService.getUserById(ReferDecNumber);
+
+          if (!refer_user) {
+            bot.sendMessage(chatId, BotCaption.strInvalidReferUser);
+            return;
+          }
+
+          await userService.setParent(userData.userid, ReferDecNumber);
+          bot.sendMessage(
+            chatId,
+            `👍 You have been joined this bot from @${refer_user.username}`
+          );
+          bot.sendMessage(
+            refer_user.userid,
+            `@${userData.username} has referred you. Your referal leverl is ${refer_user.refer_level}.`
+          );
+        }
+      }
+    );
 
     bot.onText(/\/setting/, async (msg: TelegramBot.Message) => {
       try {

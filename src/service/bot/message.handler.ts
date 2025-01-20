@@ -127,13 +127,11 @@ export const messageHandler = async (
           bot.sendMessage(msg.chat.id, BotCaption.strInvalidReferUser);
           return;
         }
-        await userService.updateUser(userData.userid, {
-          parent: ReferDecNumber,
-        });
+        await userService.setParent(userData.userid, ReferDecNumber);
         bot.sendMessage(msg.chat.id, BotCaption.strReferSuccess);
         bot.sendMessage(
           refer_user.userid,
-          `${userData.username} has referred you.`
+          `@${userData.username} has referred you.`
         );
       } else {
         return;
