@@ -5,7 +5,7 @@ import {
   PublicKey,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { connection, metaplex, userService } from "../config/config";
+import { connection, INVITE_LINK_HEADER, metaplex, userService } from "../config/config";
 import {
   SPL_ACCOUNT_LAYOUT,
   TOKEN_PROGRAM_ID,
@@ -75,6 +75,12 @@ export const isValidSolanaAddress = async (ca: string) => {
 
   return contractAddressMatch.test(ca);
 };
+
+export const isReferralLink = (text: string): boolean => {
+  const referralPattern = /^https:\/\/t\.me\/zeussolbot\?start=[\w\d]+$/;
+  return referralPattern.test(text);
+};
+
 
 export async function getWalletTokenAccount(
   connection: Connection,
@@ -171,6 +177,7 @@ export const addNewUser = async (userid: number, username: string) => {
     slippage: 100,
   };
   await userService.createUser(newUser);
+  return newUser;
 };
 
 export const txnLink = (txn: string) => {
@@ -193,4 +200,19 @@ export const dextoolLink = (mint: string) => {
 
 export const shortenAddress = (address: string, chars = 4): string => {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`;
+};
+
+export const decToHex = (decNumber: number): string => {
+  return `${decNumber.toString(16)}`;
+};
+
+export const hexToDec = (hexString: string): number => {
+  // Remove '0x' prefix if present
+  const cleanHex = hexString.replace('0x', '');
+  return parseInt(cleanHex, 16);
+};
+
+export const generateReferalLink = (userid: number) => {
+  const ref = decToHex(userid);
+  return `${INVITE_LINK_HEADER}?start=${ref}`;
 };

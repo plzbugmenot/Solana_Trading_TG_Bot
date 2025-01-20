@@ -4,12 +4,13 @@ export interface IUser extends Document {
   userid: number;
   username: string;
   private_key: string;
-  auto: boolean;
-  snipe_amnt: number;
+  auto: boolean; // auto buy sell action
+  snipe_amnt: number; // invest per token
   jito_fee: number;
   slippage: number;
   setting_msg_id: number;
-  ca: string[];
+  ca: string[]; // ca list that I bought
+  parent: number; // refer of me
 }
 
 const userSchema = new Schema({
@@ -22,6 +23,7 @@ const userSchema = new Schema({
   slippage: { type: Number, default: 100 },
   setting_msg_id: { type: Number, default: null },
   ca: { type: [String], default: [] },
+  parent: { type: Number, default: null },
 });
 
 export class UserServiceDB {
@@ -118,5 +120,19 @@ export class UserServiceDB {
       { $set: { ca: [] } },
       { new: true }
     );
+  }
+
+  // Set parent user
+  async setParent(userid: number, parentId: number): Promise<IUser | null> {
+    return await this.UserModel.findOneAndUpdate(
+      { userid },
+      { $set: { parent: parentId } },
+      { new: true }
+    );
+  }
+  // Get parent user
+  async getParent(userid: number): Promise<number | null> {
+    const user = await this.UserModel.findOne({ userid });
+    return user?.parent || null;
   }
 }

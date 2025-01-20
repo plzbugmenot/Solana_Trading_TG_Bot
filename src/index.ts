@@ -6,7 +6,7 @@ import {
   TG_BOT_TOKEN,
   userService,
 } from "./config/config";
-import { getSettingCaption } from "./service/setting/setting";
+import { getSettingCaption } from "./service/inline_key/setting";
 import { callbackQueryHandler } from "./service/bot/callback.handler";
 import { messageHandler } from "./service/bot/message.handler";
 import { addNewUser, contractLink, shortenAddress } from "./utils/utils";
@@ -16,6 +16,7 @@ import { connectDatabase } from "./config/db";
 import { getSnipingTokens, getWalletTokens } from "./service/token/token";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
+import { newUserCreateAction } from "./service/userService/newUsetAction";
 
 const start_bot = () => {
   connectDatabase();
@@ -27,23 +28,13 @@ const start_bot = () => {
     bot.setMyCommands(BotMenu);
 
     bot.onText(/\/start/, async (msg: TelegramBot.Message) => {
-      const username = msg.chat.username;
-      if (!username) return;
-      const isNewUser = await userService.isNewUser(msg.chat.id);
-      if (isNewUser) await addNewUser(msg.chat.id, username);
-      const caption = `🎉 @${msg.chat.username}, ${BotCaption.strWelcome}`;
-      bot.sendMessage(msg.chat.id, caption, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      });
+      await newUserCreateAction(bot, msg);
     });
 
     bot.onText(/\/setting/, async (msg: TelegramBot.Message) => {
       try {
-        const username = msg.chat.username;
-        if (!username) return;
-        const isNewUser = await userService.isNewUser(msg.chat.id);
-        if (isNewUser) await addNewUser(msg.chat.id, username);
+        await newUserCreateAction(bot, msg);
+
         const userData = await userService.getUserById(msg.chat.id);
         if (!userData) return;
         const inline_keyboard = await getSettingCaption(userData);

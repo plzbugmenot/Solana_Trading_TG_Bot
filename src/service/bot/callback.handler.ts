@@ -8,7 +8,7 @@ import {
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import { copy2clipboard } from "../../utils/utils";
-import { getSettingCaption } from "../setting/setting";
+import { getSettingCaption } from "../inline_key/setting";
 import { msgService, userService } from "../../config/config";
 import { buySwap } from "../swap/swap";
 

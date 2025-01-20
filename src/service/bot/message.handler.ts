@@ -1,5 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
-import { getSettingCaption } from "../setting/setting";
+import { getSettingCaption } from "../inline_key/setting";
 import {
   AutoSwapAmount,
   BotCallBack,
@@ -7,6 +7,8 @@ import {
 } from "../../config/constants";
 import {
   getTokenInfoFromMint,
+  hexToDec,
+  isReferralLink,
   isValidSolanaAddress,
   txnLink,
 } from "../../utils/utils";
@@ -113,8 +115,27 @@ export const messageHandler = async (
           console.log("auto swap", swapAmount);
           buySwap(bot, msg.chat.id, userData, swapAmount, messageText);
         } else await sendTokenInfoMsg(bot, msg.chat.id, messageText);
-      } else {
+      } else if (isReferralLink(messageText)) {
         // bot.sendMessage(chatId, BotCaption.strInvalidSolanaTokenAddress);
+        const ReferDecNumber = hexToDec(messageText.split("?start=")[1]);
+        if (userData.parent) {
+          bot.sendMessage(msg.chat.id, BotCaption.strAlreadyRefer);
+          return;
+        }
+        const refer_user = await userService.getUserById(ReferDecNumber);
+        if (!refer_user) {
+          bot.sendMessage(msg.chat.id, BotCaption.strInvalidReferUser);
+          return;
+        }
+        await userService.updateUser(userData.userid, {
+          parent: ReferDecNumber,
+        });
+        bot.sendMessage(msg.chat.id, BotCaption.strReferSuccess);
+        bot.sendMessage(
+          refer_user.userid,
+          `${userData.username} has referred you.`
+        );
+      } else {
         return;
       }
     }

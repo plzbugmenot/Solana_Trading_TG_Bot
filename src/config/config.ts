@@ -42,3 +42,5 @@ export const _amount = 0.000001; // 0.000001 SOL
 export const userService = new UserServiceDB();
 
 export const msgService = new BotMessageService();
+
+export const INVITE_LINK_HEADER = "https://t.me/zeussolbot";
