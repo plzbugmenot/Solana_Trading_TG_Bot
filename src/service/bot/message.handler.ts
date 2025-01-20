@@ -89,6 +89,7 @@ export const messageHandler = async (
       }
       if (!isSwap) {
         const updated_userData = await userService.getUserById(userData.userid);
+        if (!updated_userData) return;
         const inline_keyboard = await getSettingCaption(updated_userData);
         const settingMsgId = userData.setting_msg_id;
         const m_g = await bot.sendMessage(msg.chat.id, `Set as ${res_msg}`);

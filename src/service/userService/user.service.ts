@@ -33,9 +33,9 @@ export class UserServiceDB {
     return await user.save();
   }
 
-  async getUserById(userid: number): Promise<IUser> {
+  async getUserById(userid: number): Promise<IUser | null> {
     const user = await this.UserModel.findOne({ userid });
-    if (!user) throw new Error("User not found");
+    if (!user) return null;
     return user;
   }
 

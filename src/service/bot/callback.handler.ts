@@ -69,6 +69,7 @@ export const callbackQueryHandler = async (
       case BotCallBack.AUTO_COMMAND:
         await userService.updateAutoSetting(chatId, !userData.auto);
         const updated_userData = await userService.getUserById(chatId);
+        if (!updated_userData) return;
         const inline_keyboard = await getSettingCaption(updated_userData);
         // console.log("inline_keyboard", inline_keyboard);
         await bot.editMessageReplyMarkup(
