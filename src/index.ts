@@ -1,10 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import {
-  _is_buy,
-  _slippage,
-  _tip,
   bot,
-  TG_BOT_TOKEN,
   userService,
 } from "./config/config";
 import { getSettingCaption } from "./service/inline_key/setting";
@@ -14,10 +10,10 @@ import { contractLink, hexToDec } from "./utils/utils";
 import logger from "./logs/logger";
 import { BotCaption, BotMenu } from "./config/constants";
 import { connectDatabase } from "./config/db";
-import { getSnipingTokens, getWalletTokens } from "./service/token/token";
+import { getWalletTokens } from "./service/token/token";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
-import { newUserCreateAction } from "./service/userService/newUsetAction";
+import { newUserCreateAction } from "./service/userService/newUserAction";
 
 const start_bot = () => {
   connectDatabase();
@@ -64,7 +60,7 @@ const start_bot = () => {
           );
           bot.sendMessage(
             refer_user.userid,
-            `@${userData.username} has referred you. Your referal leverl is ${refer_user.refer_level}.`
+            `@${userData.username} has referred you.`
           );
         }
       }
@@ -72,7 +68,7 @@ const start_bot = () => {
 
     bot.onText(/\/setting/, async (msg: TelegramBot.Message) => {
       try {
-        await newUserCreateAction(bot, msg);
+        // await newUserCreateAction(bot, msg);
 
         const userData = await userService.getUserById(msg.chat.id);
         if (!userData) return;

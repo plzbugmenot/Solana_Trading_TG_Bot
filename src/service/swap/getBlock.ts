@@ -14,7 +14,7 @@ async function fetchLastValidBlockhash() {
 }
 
 // Keep fetching the last valid blockhash every 100ms
-setInterval(fetchLastValidBlockhash, 100000);
+setInterval(fetchLastValidBlockhash, 1000);
 
 // Function to get the cached last valid blockhash
 export function getLastValidBlockhash(): string | null {

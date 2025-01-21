@@ -13,9 +13,6 @@ import {
   txnLink,
 } from "../../utils/utils";
 import {
-  _is_buy,
-  _slippage,
-  _tip,
   msgService,
   userService,
 } from "../../config/config";
@@ -113,6 +110,7 @@ export const messageHandler = async (
         if (auto) {
           const swapAmount = userData.snipe_amnt;
           console.log("auto swap", swapAmount);
+
           buySwap(bot, msg.chat.id, userData, swapAmount, messageText);
         } else await sendTokenInfoMsg(bot, msg.chat.id, messageText);
       } else if (isReferralLink(messageText)) {
@@ -201,7 +199,7 @@ export const sendSwapTxMsg = async (
 ${txnLink(txHash)}`;
   const swapAlarm = await bot.sendMessage(chatId, msg, {
     parse_mode: "HTML",
-    disable_web_page_preview: false,
+    disable_web_page_preview: true,
   });
   return swapAlarm.message_id;
 };

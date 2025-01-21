@@ -2,7 +2,7 @@ import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import { getWalletBalance } from "../../utils/utils";
 import { BotCallBack } from "../../config/constants";
-import { IUser } from "../userService/user.service";
+import { IUser } from "../../utils/type";
 
 export const getSettingCaption = async (userData: IUser) => {
   const wallet = Keypair.fromSecretKey(bs58.decode(userData.private_key));

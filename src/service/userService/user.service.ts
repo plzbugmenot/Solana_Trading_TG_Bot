@@ -1,22 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
-
-export interface IUser extends Document {
-  userid: number;
-  username: string;
-  private_key: string;
-  auto: boolean; // auto buy sell action
-  snipe_amnt: number; // invest per token
-  jito_fee: number;
-  slippage: number;
-  setting_msg_id: number;
-  ca: string[]; // ca list that I bought
-  parent: number; // refer of me
-  refer_level: number; // level of refer
-}
+import { IUser } from "../../utils/type";
 
 const userSchema = new Schema({
   userid: { type: Number, required: true, unique: true },
   username: { type: String, required: true },
+  public_key: { type: String, required: true },
   private_key: { type: String, required: true },
   auto: { type: Boolean, default: false },
   snipe_amnt: { type: Number, default: 0.000001 },
@@ -126,13 +114,6 @@ export class UserServiceDB {
 
   // Set parent user
   async setParent(userid: number, parentId: number): Promise<IUser | null> {
-    const parentUser = await this.UserModel.findOne({ userid: parentId });
-    const newLevel = Math.min((parentUser?.refer_level || 0) + 1, 5);
-    await this.UserModel.findOneAndUpdate(
-      { userid: parentId },
-      { $set: { refer_level: newLevel } },
-      { new: true }
-    ); // parent level upgrade
     return await this.UserModel.findOneAndUpdate(
       { userid },
       { $set: { parent: parentId } },
