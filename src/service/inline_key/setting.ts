@@ -24,7 +24,7 @@ export const getSettingCaption = async (userData: IUser) => {
         callback_data: BotCallBack.AUTO_COMMAND,
       },
       {
-        text: `💰 Swap Auto Amount {${snipe_amnt} SOL`,
+        text: `💰 Swap Auto Amount ${snipe_amnt} SOL`,
         callback_data: BotCallBack.SNIPE_AMOUNT_COMMAND,
       },
     ],
