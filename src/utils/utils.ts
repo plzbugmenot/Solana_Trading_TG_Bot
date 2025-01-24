@@ -3,17 +3,25 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
+  Transaction,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { connection, metaplex, userService } from "../config/config";
+import {
+  connection,
+  INVITE_LINK_HEADER,
+  metaplex,
+  REFER_PERCENT,
+  userService,
+} from "../config/config";
 import {
   SPL_ACCOUNT_LAYOUT,
   TOKEN_PROGRAM_ID,
   TokenAccount,
 } from "@raydium-io/raydium-sdk";
 import { BN } from "bn.js"; // Import BN class as a value
-import { PumpData, UserData } from "./type";
+import { IReferrePercent, PumpData } from "./type";
 import bs58 from "bs58";
+import logger from "../logs/logger";
 
 export const formatNumber = (num: number): string => {
   if (typeof num !== "number" || isNaN(num)) return "0";
@@ -74,6 +82,11 @@ export const isValidSolanaAddress = async (ca: string) => {
   const contractAddressMatch = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
   return contractAddressMatch.test(ca);
+};
+
+export const isReferralLink = (text: string): boolean => {
+  const referralPattern = /^https:\/\/t\.me\/zeussolbot\?start=[\w\d]+$/;
+  return referralPattern.test(text);
 };
 
 export async function getWalletTokenAccount(
@@ -162,15 +175,20 @@ export async function simulateTxn(txn: VersionedTransaction) {
 
 export const addNewUser = async (userid: number, username: string) => {
   const private_key = bs58.encode(Keypair.generate().secretKey);
-  const newUser: UserData = {
+  const public_key = Keypair.fromSecretKey(
+    bs58.decode(private_key)
+  ).publicKey.toBase58();
+  const newUser = {
     userid,
     username,
+    public_key,
     private_key,
     snipe_amnt: 0.000001,
     jito_fee: 0.000001,
     slippage: 100,
   };
   await userService.createUser(newUser);
+  return newUser;
 };
 
 export const txnLink = (txn: string) => {
@@ -194,3 +212,78 @@ export const dextoolLink = (mint: string) => {
 export const shortenAddress = (address: string, chars = 4): string => {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`;
 };
+
+export const decToHex = (decNumber: number): string => {
+  return `${decNumber.toString(16)}`;
+};
+
+export const hexToDec = (hexString: string): number => {
+  // Remove '0x' prefix if present
+  const cleanHex = hexString.replace("0x", "");
+  return parseInt(cleanHex, 16);
+};
+
+export const generateReferalLink = (userid: number) => {
+  const ref = decToHex(userid);
+  return `${INVITE_LINK_HEADER}?start=${ref}`;
+};
+
+export const getReferredUsers = async (userid: number) => {
+  let referredUsers: IReferrePercent[] = [];
+  let idx = 0;
+  const user = await userService.getUserById(userid);
+  if (!user) return [];
+  let tmpUserId = user.parent;
+  try {
+    while (tmpUserId && idx < 5) {
+      console.log(idx, tmpUserId);
+      const user = await userService.getUserById(tmpUserId);
+      if (user && user.userid !== userid) {
+        // console.log("user: ", user);
+        referredUsers.push({
+          publick_key: user.public_key,
+          percent: REFER_PERCENT[idx],
+        });
+        tmpUserId = user.parent;
+        idx++;
+      } else {
+        console.log("user not found");
+        break;
+      }
+    }
+    return referredUsers;
+  } catch (error: any) {
+    console.log("getReferredUsers: ", error);
+    return [];
+  }
+};
+
+export const getTokenPriceFromJupiter = async (ca: string) => {
+  try {
+    const BaseURL = `https://api.jup.ag/price/v2?ids=${ca}`;
+
+    const response = await fetch(BaseURL);
+    const data = await response.json();
+    // console.log("data", data);
+    const price = data.data[ca]?.price;
+    return price;
+  } catch (error) {
+    logger.error("Error fetching token price from Jupiter: " + error);
+    return 0;
+  }
+};
+
+export function getSignatureFromTransaction(
+  transaction: Transaction | VersionedTransaction
+): string {
+  const signature =
+    "signature" in transaction
+      ? transaction.signature
+      : transaction.signatures[0];
+  if (!signature) {
+    throw new Error(
+      "Missing transaction signature, the transaction was not signed by the fee payer"
+    );
+  }
+  return bs58.encode(signature);
+}

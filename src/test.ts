@@ -1,10 +1,7 @@
-import { connection } from "./config/config";
-import { isValidSolanaAddress } from "./utils/utils";
-
 const test = async () => {
-  const ca = "asd";
-  const isCA = await isValidSolanaAddress(ca);
-  console.log("isCA", isCA);
-  
+  // await mongoose.connect(MONGO_URL);
+  console.log("start test...");
+
+  console.log("txHash: ", "txHash");
 };
 test();

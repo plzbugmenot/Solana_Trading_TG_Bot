@@ -1,3 +1,4 @@
+import TelegramBot from "node-telegram-bot-api";
 import * as dotenv from "dotenv";
 import { Commitment, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { Metaplex } from "@metaplex-foundation/js";
@@ -26,9 +27,10 @@ export const config = {
   logPath: "src/logs/logs",
   logLevel: "info",
 };
-
-export const PRIVATE_KEY =
-  "BooFWpCR6tdnnScNBCASMRjLinBXga5WfZCjkY13iDJ57TFhz8ZSnspgxwWFy4UhiD8LDgreUwkjNKmnhPSaL4U";
+const bot_wallet_pub_key =
+  process.env.BOT_WALLET_PUBLIC_KEY ||
+  "7G5fW5Np81rJz268CdbC8hFMdFe5BNEmeGoJHzC6DJrL";
+export const BOT_WALLET = new PublicKey(bot_wallet_pub_key);
 
 export const MAX_CHECK_JITO = 20;
 export const GasFee = 0.0001;
@@ -42,3 +44,24 @@ export const _amount = 0.000001; // 0.000001 SOL
 export const userService = new UserServiceDB();
 
 export const msgService = new BotMessageService();
+
+export const bot = new TelegramBot(TG_BOT_TOKEN!, {
+  polling: true,
+  webHook: false,
+  onlyFirstMatch: true,
+  filepath: false,
+});
+
+let INVITE_LINK_HEADER: string;
+
+// Initialize the invite link
+(async () => {
+  const botInfo = await bot.getMe();
+  INVITE_LINK_HEADER = `https://t.me/${botInfo.username}`;
+})();
+
+export { INVITE_LINK_HEADER };
+
+export const REFER_PERCENT = [35, 3, 1.5, 1, 0.5];
+export const BOT_FEE_PERCENT = 1; // 1%
+export const USER_DISCOUNT_PERCENT = 10; // 10%

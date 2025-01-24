@@ -1,20 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
-
-export interface IUser extends Document {
-  userid: number;
-  username: string;
-  private_key: string;
-  auto: boolean;
-  snipe_amnt: number;
-  jito_fee: number;
-  slippage: number;
-  setting_msg_id: number;
-  ca: string[];
-}
+import { IUser } from "../../utils/type";
 
 const userSchema = new Schema({
   userid: { type: Number, required: true, unique: true },
   username: { type: String, required: true },
+  public_key: { type: String, required: true },
   private_key: { type: String, required: true },
   auto: { type: Boolean, default: false },
   snipe_amnt: { type: Number, default: 0.000001 },
@@ -22,6 +12,8 @@ const userSchema = new Schema({
   slippage: { type: Number, default: 100 },
   setting_msg_id: { type: Number, default: null },
   ca: { type: [String], default: [] },
+  parent: { type: Number, default: null },
+  refer_level: { type: Number, default: 0 },
 });
 
 export class UserServiceDB {
@@ -33,9 +25,9 @@ export class UserServiceDB {
     return await user.save();
   }
 
-  async getUserById(userid: number): Promise<IUser> {
+  async getUserById(userid: number): Promise<IUser | null> {
     const user = await this.UserModel.findOne({ userid });
-    if (!user) throw new Error("User not found");
+    if (!user) return null;
     return user;
   }
 
@@ -118,5 +110,19 @@ export class UserServiceDB {
       { $set: { ca: [] } },
       { new: true }
     );
+  }
+
+  // Set parent user
+  async setParent(userid: number, parentId: number): Promise<IUser | null> {
+    return await this.UserModel.findOneAndUpdate(
+      { userid },
+      { $set: { parent: parentId } },
+      { new: true }
+    ); // user parent set
+  }
+  // Get parent user
+  async getParent(userid: number): Promise<number | null> {
+    const user = await this.UserModel.findOne({ userid });
+    return user?.parent || null;
   }
 }

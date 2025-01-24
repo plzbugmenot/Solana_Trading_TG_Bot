@@ -1,5 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
-import { getSettingCaption } from "../setting/setting";
+import { getSettingCaption } from "../inline_key/setting";
 import {
   AutoSwapAmount,
   BotCallBack,
@@ -7,13 +7,12 @@ import {
 } from "../../config/constants";
 import {
   getTokenInfoFromMint,
+  hexToDec,
+  isReferralLink,
   isValidSolanaAddress,
   txnLink,
 } from "../../utils/utils";
 import {
-  _is_buy,
-  _slippage,
-  _tip,
   msgService,
   userService,
 } from "../../config/config";
@@ -89,6 +88,7 @@ export const messageHandler = async (
       }
       if (!isSwap) {
         const updated_userData = await userService.getUserById(userData.userid);
+        if (!updated_userData) return;
         const inline_keyboard = await getSettingCaption(updated_userData);
         const settingMsgId = userData.setting_msg_id;
         const m_g = await bot.sendMessage(msg.chat.id, `Set as ${res_msg}`);
@@ -110,10 +110,28 @@ export const messageHandler = async (
         if (auto) {
           const swapAmount = userData.snipe_amnt;
           console.log("auto swap", swapAmount);
+
           buySwap(bot, msg.chat.id, userData, swapAmount, messageText);
         } else await sendTokenInfoMsg(bot, msg.chat.id, messageText);
-      } else {
+      } else if (isReferralLink(messageText)) {
         // bot.sendMessage(chatId, BotCaption.strInvalidSolanaTokenAddress);
+        const ReferDecNumber = hexToDec(messageText.split("?start=")[1]);
+        if (userData.parent) {
+          bot.sendMessage(msg.chat.id, BotCaption.strAlreadyRefer);
+          return;
+        }
+        const refer_user = await userService.getUserById(ReferDecNumber);
+        if (!refer_user) {
+          bot.sendMessage(msg.chat.id, BotCaption.strInvalidReferUser);
+          return;
+        }
+        await userService.setParent(userData.userid, ReferDecNumber);
+        bot.sendMessage(msg.chat.id, BotCaption.strReferSuccess);
+        bot.sendMessage(
+          refer_user.userid,
+          `@${userData.username} has referred you.`
+        );
+      } else {
         return;
       }
     }
@@ -181,7 +199,7 @@ export const sendSwapTxMsg = async (
 ${txnLink(txHash)}`;
   const swapAlarm = await bot.sendMessage(chatId, msg, {
     parse_mode: "HTML",
-    disable_web_page_preview: false,
+    disable_web_page_preview: true,
   });
   return swapAlarm.message_id;
 };

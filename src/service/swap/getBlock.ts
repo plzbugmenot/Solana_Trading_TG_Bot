@@ -21,6 +21,9 @@ export function getLastValidBlockhash(): string | null {
   return lastValidBlockhash;
 }
 
-async function getSignaturesCount (){
-  const signatures = await connection.getSignaturesForAddress(new PublicKey(""), {until: ""})
+async function getSignaturesCount() {
+  const signatures = await connection.getSignaturesForAddress(
+    new PublicKey(""),
+    { until: "" }
+  );
 }

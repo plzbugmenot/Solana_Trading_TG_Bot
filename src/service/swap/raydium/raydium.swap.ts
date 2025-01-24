@@ -19,13 +19,15 @@ import {
 import { fetchPoolInfoByMint } from "./formatAmmKeysById";
 // import { SwapParam } from "../services/types";
 import { connection } from "../../../config/config";
-import { SwapParam } from "../../../utils/type";
+import { ISwapTxResponse, SwapParam } from "../../../utils/type";
 import { getWalletTokenAccount } from "../../../utils/utils";
 import { JitoAccounts } from "../jito/jito";
 import bs58 from "bs58";
 import { getLastValidBlockhash } from "../getBlock";
 
-export const raydiumSwapTxn = async (swapParam: SwapParam): Promise<VersionedTransaction|null> => {
+export const raydiumSwapTxn = async (
+  swapParam: SwapParam
+): Promise<ISwapTxResponse | null> => {
   const { private_key, mint, amount, slippage, tip, is_buy } = swapParam;
   const slippageP = new Percent(slippage, 100);
 
@@ -66,7 +68,6 @@ export const raydiumSwapTxn = async (swapParam: SwapParam): Promise<VersionedTra
     currencyOut: outputToken,
     slippage: slippageP,
   });
-
   // -------- step 2: create instructions by SDK function --------
   const { innerTransactions } = await Liquidity.makeSwapInstructionSimple({
     connection,
@@ -102,5 +103,14 @@ export const raydiumSwapTxn = async (swapParam: SwapParam): Promise<VersionedTra
     recentBlockhash: blockhash,
     instructions,
   }).compileToV0Message();
-  return new VersionedTransaction(messageV0);
+  // const inDecimal = is_buy ? 9 : decimals;
+  return {
+    vTxn: new VersionedTransaction(messageV0),
+    inAmount: inAmount / 10 ** inDecimal,
+    outAmount: Number(
+      Number(amountOut.numerator) /
+        Number(amountOut.denominator) /
+        10 ** inDecimal
+    ),
+  };
 };

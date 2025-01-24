@@ -13,9 +13,10 @@ import { getMint, NATIVE_MINT } from "@solana/spl-token";
 import axios from "axios";
 import bs58 from "bs58";
 import { JitoAccounts } from "../jito/jito";
-import { SwapParam } from "../../../utils/type";
+import { ISwapTxResponse, SwapParam } from "../../../utils/type";
 import { getLastValidBlockhash } from "../getBlock";
 import { connection } from "../../../config/config";
+import { isBN } from "bn.js";
 
 function deserializeInstruction(instruction: any): TransactionInstruction {
   return new TransactionInstruction({
@@ -29,7 +30,9 @@ function deserializeInstruction(instruction: any): TransactionInstruction {
   });
 }
 
-export const jupiterSwapTxn =async (swapParam: SwapParam) : Promise<VersionedTransaction> => {
+export const jupiterSwapTxn = async (
+  swapParam: SwapParam
+): Promise<ISwapTxResponse | null> => {
   const { private_key, mint, amount, slippage, tip, is_buy } = swapParam;
   const wallet = Keypair.fromSecretKey(bs58.decode(private_key));
 
@@ -45,7 +48,8 @@ export const jupiterSwapTxn =async (swapParam: SwapParam) : Promise<VersionedTra
     slippage * 100
   }`;
   const quoteResponse = (await axios.get(url)).data;
-
+  console.log(quoteResponse);
+  const outAmount = is_buy ? quoteResponse.outAmount / 10 ** decimals : quoteResponse.inAmount / LAMPORTS_PER_SOL;
   const instructions = (
     await axios.post(
       "https://quote-api.jup.ag/v6/swap-instructions",
@@ -108,10 +112,10 @@ export const jupiterSwapTxn =async (swapParam: SwapParam) : Promise<VersionedTra
     lamports: tip * LAMPORTS_PER_SOL,
   });
   const blockhash = getLastValidBlockhash();
-    if (!blockhash) {
-      console.error("Failed to retrieve blockhash from cache");
-      throw new Error("Failed to retrieve blockhash from cache");
-    }
+  if (!blockhash) {
+    console.error("Failed to retrieve blockhash from cache");
+    throw new Error("Failed to retrieve blockhash from cache");
+  }
   const messageV0 = new TransactionMessage({
     payerKey: wallet.publicKey,
     recentBlockhash: blockhash,
@@ -122,10 +126,9 @@ export const jupiterSwapTxn =async (swapParam: SwapParam) : Promise<VersionedTra
       feeInstructions,
     ],
   }).compileToV0Message(addressLookupTableAccounts);
-  // const txn = new VersionedTransaction(messageV0);
-  return new VersionedTransaction(messageV0);
-  // txn.sign([wallet]);
-  // const jitoInstance = new JitoBundleService();
-  // const signature = await jitoInstance.sendTransaction(txn.serialize());
-  // console.log("https://solscan.io/tx/" + signature);
+  return {
+    vTxn: new VersionedTransaction(messageV0),
+    inAmount: amountInLamports,
+    outAmount: outAmount,
+  };
 };

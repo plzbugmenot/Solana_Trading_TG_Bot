@@ -13,3 +13,5 @@ dist
 *.json
 /src/data
 /src/logs/logs
+
+/src/test.ts
