@@ -19,7 +19,8 @@ import {
   TokenAccount,
 } from "@raydium-io/raydium-sdk";
 import { BN } from "bn.js"; // Import BN class as a value
-import { IReferrePercent, PumpData } from "./type";
+import { IReferrePercent, IUser, PumpData } from "./type";
+import axios from "axios";
 import bs58 from "bs58";
 import logger from "../logs/logger";
 
@@ -173,22 +174,100 @@ export async function simulateTxn(txn: VersionedTransaction) {
   }
 }
 
-export const addNewUser = async (userid: number, username: string) => {
+export const addNewUser = async (
+  userid: number,
+  username?: string,
+  first_name?: string,
+  last_name?: string
+) => {
   const private_key = bs58.encode(Keypair.generate().secretKey);
   const public_key = Keypair.fromSecretKey(
     bs58.decode(private_key)
   ).publicKey.toBase58();
-  const newUser = {
+  const newUser: IUser = {
     userid,
-    username,
     public_key,
     private_key,
-    snipe_amnt: 0.000001,
-    jito_fee: 0.000001,
-    slippage: 100,
   };
-  await userService.createUser(newUser);
-  return newUser;
+  if (username) {
+    newUser.username = username;
+  }
+  if (first_name) {
+    newUser.first_name = first_name;
+  }
+  if (last_name) {
+    newUser.last_name = last_name;
+  }
+  return await userService.createOrGetUser(newUser);
+};
+
+
+export const getTokenCAFromPoolId = async (poolId: string): Promise<string | null> => {
+  try {
+    // Try dexscreener API first
+    const response = await axios.get(`https://api.dexscreener.com/latest/dex/pairs/solana/${poolId}`);
+
+    if (response.data && response.data.pairs && response.data.pairs[0]) {
+      const pair = response.data.pairs[0];
+      // Return the token address (usually the baseToken is the one we're interested in)
+      return pair.baseToken.address;
+    }
+  } catch (error) {
+    console.log("Error fetching pool info:", error);
+  }
+  return null;
+};
+
+export const extractCAFromText = async (text: string): Promise<string | null> => {
+  // First, try to find a direct Solana address
+  const solanaAddressRegex = /[1-9A-HJ-NP-Za-km-z]{32,44}/g;
+  const words = text.split(/[\s\n]+/);
+
+  // Try to find direct CA first
+  for (const word of words) {
+    // Remove any URL parameters or trailing slashes
+    const cleanWord = word.split('?')[0].replace(/\/$/, '');
+
+    // Extract potential CA from various non-dex URL formats
+    let potentialCA = cleanWord;
+
+    // Handle other URL formats (pump.fun, solscan, birdeye)
+    if (cleanWord.includes('/')) {
+      if (cleanWord.includes('pump.fun') || 
+          cleanWord.includes('solscan.io') ||
+          cleanWord.includes('birdeye.so')) {
+        potentialCA = cleanWord.split('/').pop() || '';
+      }
+    }
+
+    // Check if the extracted text matches Solana address pattern
+    if (potentialCA.match(solanaAddressRegex)) {
+      // Verify it's a valid Solana address
+      if (await isValidSolanaAddress(potentialCA)) {
+        return potentialCA;
+      }
+    }
+  }
+
+  // If no direct CA found, try to find dexscreener/dextools links with solana
+  const dexscreenerRegex = /https?:\/\/dexscreener\.com\/solana\/([A-Za-z0-9]+)/i;
+  const dextoolsRegex = /https?:\/\/(?:www\.)?dextools\.io\/app\/[^/]+\/solana\/(?:pair|pool)-explorer\/([A-Za-z0-9]+)/i;
+
+  // Check for dexscreener link
+  const dexscreenerMatch = text.match(dexscreenerRegex);
+  if (dexscreenerMatch && dexscreenerMatch[1]) {
+    const tokenCA = await getTokenCAFromPoolId(dexscreenerMatch[1]);
+    if (tokenCA) return tokenCA;
+  }
+
+  // Check for dextools link
+  const dextoolsMatch = text.match(dextoolsRegex);
+  if (dextoolsMatch && dextoolsMatch[1]) {
+    const tokenCA = await getTokenCAFromPoolId(dextoolsMatch[1]);
+    if (tokenCA) return tokenCA;
+  }
+
+  return null;
 };
 
 export const txnLink = (txn: string) => {

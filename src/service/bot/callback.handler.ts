@@ -7,7 +7,7 @@ import {
 } from "../../config/constants";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
-import { copy2clipboard } from "../../utils/utils";
+import { addNewUser, copy2clipboard } from "../../utils/utils";
 import { getSettingCaption } from "../inline_key/setting";
 import { msgService, userService } from "../../config/config";
 import { buySwap } from "../swap/swap";
@@ -23,6 +23,17 @@ export const callbackQueryHandler = async (
     const chatId = cb_query.message?.chat.id;
     const messageId = cb_query.message?.message_id || 0;
     if (!data || !chatId) return;
+
+    // Check if user exists and create if not
+    const isNewUser = await userService.isNewUser(chatId);
+    if (isNewUser) {
+      await addNewUser(
+        chatId,
+        cb_query.from.username,
+        cb_query.from.first_name,
+        cb_query.from.last_name
+      );
+    }
 
     const userData = await userService.getUserById(chatId);
     if (!userData) return;

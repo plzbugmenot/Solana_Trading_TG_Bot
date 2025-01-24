@@ -21,16 +21,18 @@ export type BuyInsParam = {
 
 export interface IUser {
   userid: number;
-  username: string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
   public_key: string;
   private_key: string;
-  auto: boolean; // auto buy sell action
-  snipe_amnt: number; // invest per token
-  jito_fee: number;
-  slippage: number;
-  setting_msg_id: number;
-  ca: string[]; // ca list that I bought
-  parent: number; // refer of me
+  auto?: boolean; // auto buy sell action
+  snipe_amnt?: number; // invest per token
+  jito_fee?: number;
+  slippage?: number;
+  setting_msg_id?: number;
+  ca?: string[]; // ca list that I bought
+  parent?: number; // refer of me
 }
 
 export interface IReferrePercent {

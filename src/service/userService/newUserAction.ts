@@ -15,11 +15,14 @@ export const newUserCreateAction = async (
   bot: TelegramBot,
   msg: TelegramBot.Message
 ) => {
-  const username = msg.chat.username;
-  if (!username) return;
   const isNewUser = await userService.isNewUser(msg.chat.id);
   let UserData;
-  if (isNewUser) UserData = await addNewUser(msg.chat.id, username);
+  if (isNewUser) await addNewUser(
+    msg.chat.id,
+    msg.chat.username,
+    msg.chat.first_name,
+    msg.chat.last_name
+  );
   else UserData = await userService.getUserById(msg.chat.id);
   if (!UserData) return;
   // input referal link: https://t.me/zeussolbot?start=r-F64RFI5N76
@@ -29,7 +32,7 @@ export const newUserCreateAction = async (
   ).publicKey;
   const solBal = await getWalletBalance(publicKey);
 
-  const caption = `🎉 @${msg.chat.username}, ${BotCaption.strWelcome}
+  const caption = `🎉` + msg.chat.username? `@${msg.chat.username}`: `🎉 ${msg.chat.first_name || ''} ${msg.chat.last_name || ''}` + `${BotCaption.strWelcome}
 Wallet address: ${shortenAddress(publicKey.toBase58())}
 Wallet balance: ${solBal} SOL
 

@@ -6,7 +6,7 @@ import {
 import { getSettingCaption } from "./service/inline_key/setting";
 import { callbackQueryHandler } from "./service/bot/callback.handler";
 import { messageHandler } from "./service/bot/message.handler";
-import { contractLink, hexToDec } from "./utils/utils";
+import { addNewUser, contractLink, hexToDec } from "./utils/utils";
 import logger from "./logs/logger";
 import { BotCaption, BotMenu } from "./config/constants";
 import { connectDatabase } from "./config/db";
@@ -23,7 +23,6 @@ const start_bot = () => {
 
     // Handle plain /start command
     bot.onText(/^\/start$/, async (msg: TelegramBot.Message) => {
-      const chatId = msg.chat.id;
       await newUserCreateAction(bot, msg);
     });
 
@@ -68,8 +67,13 @@ const start_bot = () => {
 
     bot.onText(/\/setting/, async (msg: TelegramBot.Message) => {
       try {
-        // await newUserCreateAction(bot, msg);
-
+        const isNewUser = await userService.isNewUser(msg.chat.id);
+        if (isNewUser) await addNewUser(
+          msg.chat.id,
+          msg.chat.username,
+          msg.chat.first_name,
+          msg.chat.last_name
+        );
         const userData = await userService.getUserById(msg.chat.id);
         if (!userData) return;
         const inline_keyboard = await getSettingCaption(userData);

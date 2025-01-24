@@ -3,7 +3,9 @@ import { IUser } from "../../utils/type";
 
 const userSchema = new Schema({
   userid: { type: Number, required: true, unique: true },
-  username: { type: String, required: true },
+  username: { type: String, required: false },
+  first_name: { type: String, required: false },
+  last_name: { type: String, required: false },
   public_key: { type: String, required: true },
   private_key: { type: String, required: true },
   auto: { type: Boolean, default: false },
@@ -21,8 +23,27 @@ export class UserServiceDB {
   private autoSettingsMap: Map<number, boolean> = new Map();
 
   async createUser(userData: Partial<IUser>): Promise<IUser> {
-    const user = new this.UserModel(userData);
-    return await user.save();
+    try {
+      const user = new this.UserModel(userData);
+      return await user.save();
+    } catch (error: any) {
+      // If duplicate key error, try to get the existing user
+      if (error.code === 11000) {
+        const existingUser = await this.UserModel.findOne({ userid: userData.userid });
+        if (existingUser) {
+          return existingUser;
+        }
+      }
+      throw error;
+    }
+  }
+
+  async createOrGetUser(userData: Partial<IUser>): Promise<IUser> {
+    const existingUser = await this.UserModel.findOne({ userid: userData.userid });
+    if (existingUser) {
+      return existingUser;
+    }
+    return await this.createUser(userData);
   }
 
   async getUserById(userid: number): Promise<IUser | null> {

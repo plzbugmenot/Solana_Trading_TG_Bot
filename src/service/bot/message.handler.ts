@@ -6,6 +6,7 @@ import {
   BotCaption,
 } from "../../config/constants";
 import {
+  addNewUser,
   getTokenInfoFromMint,
   hexToDec,
   isReferralLink,
@@ -25,6 +26,16 @@ export const messageHandler = async (
 ) => {
   try {
     const messageText = msg.text;
+    // Check if user exists and create if not
+    const isNewUser = await userService.isNewUser(msg.chat.id);
+    if (isNewUser) {
+      await addNewUser(
+        msg.chat.id,
+        msg.chat.username,
+        msg.chat.first_name,
+        msg.chat.last_name
+      );
+    }
     const userData = await userService.getUserById(msg.chat.id);
     if (!userData) return;
     const { reply_to_message } = msg;
@@ -108,7 +119,7 @@ export const messageHandler = async (
       if (isCA) {
         const auto = userService.getAutoSetting(userData.userid);
         if (auto) {
-          const swapAmount = userData.snipe_amnt;
+          const swapAmount = userData.snipe_amnt??0;
           console.log("auto swap", swapAmount);
 
           buySwap(bot, msg.chat.id, userData, swapAmount, messageText);
