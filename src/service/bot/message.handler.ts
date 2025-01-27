@@ -55,24 +55,24 @@ export const messageHandler = async (
         switch (text) {
           case BotCaption.SET_JITOFEE.replace(/<[^>]*>/g, ""):
             // console.log("SET_JITOFEE", value);
-            userData.jito_fee = value;
-            await userService.updateUser(msg.chat.id, {
-              jito_fee: value,
+            userData.swap.tip_sol = value;
+            await userService.updateSwapSettings(msg.chat.id, {
+              tip_sol: value,
             });
             res_msg = `Set to ${value}`;
             break;
           case BotCaption.SET_SNIPE_AMOUNT.replace(/<[^>]*>/g, ""):
             // console.log("SET_SNIPE_AMOUNT", value);
-            userData.snipe_amnt = value;
-            await userService.updateUser(msg.chat.id, {
-              snipe_amnt: value,
+            userData.swap.amount_sol = value;
+            await userService.updateSwapSettings(msg.chat.id, {
+              amount_sol: value,
             });
             res_msg = `Set to ${value}`;
             break;
           case BotCaption.SET_SLIPPAGE.replace(/<[^>]*>/g, ""):
             // console.log("SET_SLIPPAGE", value);
-            userData.slippage = value;
-            await userService.updateUser(msg.chat.id, {
+            userData.swap.slippage = value;
+            await userService.updateSwapSettings(msg.chat.id, {
               slippage: value,
             });
             res_msg = `Set to ${value}`;
@@ -117,9 +117,9 @@ export const messageHandler = async (
     } else {
       const isCA = await isValidSolanaAddress(messageText);
       if (isCA) {
-        const auto = userService.getAutoSetting(userData.userid);
+        const auto = userData.swap.auto;
         if (auto) {
-          const swapAmount = userData.snipe_amnt??0;
+          const swapAmount = userData.swap.amount_sol;
           console.log("auto swap", swapAmount);
 
           buySwap(bot, msg.chat.id, userData, swapAmount, messageText);

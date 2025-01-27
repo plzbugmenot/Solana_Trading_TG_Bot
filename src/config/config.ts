@@ -2,8 +2,9 @@ import TelegramBot from "node-telegram-bot-api";
 import * as dotenv from "dotenv";
 import { Commitment, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { Metaplex } from "@metaplex-foundation/js";
-import { UserServiceDB } from "../service/userService/user.service";
+import { UserService } from "../model/user.service";
 import { BotMessageService } from "../service/msgService/msgService";
+import { SwapTxnService } from "../model/txn.service";
 dotenv.config();
 
 export const rpcUrl: string =
@@ -36,14 +37,9 @@ export const MAX_CHECK_JITO = 20;
 export const GasFee = 0.0001;
 export const CU = 100_000;
 
-export const _slippage = 100; // 100 %
-export const _tip = 0.000001; // 0.000001 SOL
-export const _is_buy = true;
-export const _amount = 0.000001; // 0.000001 SOL
-
-export const userService = new UserServiceDB();
-
+export const userService = new UserService();
 export const msgService = new BotMessageService();
+export const txnService = new SwapTxnService();
 
 export const bot = new TelegramBot(TG_BOT_TOKEN!, {
   polling: true,

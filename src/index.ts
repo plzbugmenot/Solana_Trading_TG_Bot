@@ -1,8 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
-import {
-  bot,
-  userService,
-} from "./config/config";
+import { bot, userService } from "./config/config";
 import { getSettingCaption } from "./service/inline_key/setting";
 import { callbackQueryHandler } from "./service/bot/callback.handler";
 import { messageHandler } from "./service/bot/message.handler";
@@ -23,13 +20,15 @@ const start_bot = () => {
 
     // Handle plain /start command
     bot.onText(/^\/start$/, async (msg: TelegramBot.Message) => {
-      await newUserCreateAction(bot, msg);
+      console.log("🚀 input start cmd:");
+      await newUserCreateAction(bot, msg); //
     });
 
     // Handle /start with referral code
     bot.onText(
       /\/start (.+)/,
       async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
+        console.log("🚀 input start cmd with referral codeo.");
         if (!match) return;
 
         const chatId = msg.chat.id;
@@ -68,12 +67,13 @@ const start_bot = () => {
     bot.onText(/\/setting/, async (msg: TelegramBot.Message) => {
       try {
         const isNewUser = await userService.isNewUser(msg.chat.id);
-        if (isNewUser) await addNewUser(
-          msg.chat.id,
-          msg.chat.username,
-          msg.chat.first_name,
-          msg.chat.last_name
-        );
+        if (isNewUser)
+          await addNewUser(
+            msg.chat.id,
+            msg.chat.username,
+            msg.chat.first_name,
+            msg.chat.last_name
+          );
         const userData = await userService.getUserById(msg.chat.id);
         if (!userData) return;
         const inline_keyboard = await getSettingCaption(userData);

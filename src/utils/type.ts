@@ -19,22 +19,6 @@ export type BuyInsParam = {
   splOut: number;
 };
 
-export interface IUser {
-  userid: number;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  public_key: string;
-  private_key: string;
-  auto?: boolean; // auto buy sell action
-  snipe_amnt?: number; // invest per token
-  jito_fee?: number;
-  slippage?: number;
-  setting_msg_id?: number;
-  ca?: string[]; // ca list that I bought
-  parent?: number; // refer of me
-}
-
 export interface IReferrePercent {
   publick_key: string;
   percent: number;
@@ -72,3 +56,36 @@ export type PumpData = {
   priceInSOL: number;
   marketCap: number;
 };
+
+export interface ISwapTxn {
+  userid: number;
+  txHash: string;
+  mint: string;
+  txTime: number;
+  swap: {
+    auto: boolean;
+    token_amount: number;
+    price_usd: number;
+    swap: "BUY" | "SELL";
+    tip_usd: number;
+  }
+}
+
+export interface IUser {
+  userid: number;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  public_key: string;
+  private_key: string;
+  setting_msg_id?: number;
+  parent?: number;
+  swap: {
+    auto: boolean;
+    amount_sol: number;
+    tip_sol: number;
+    slippage: number;
+  }
+  language: "EN" | "CH";
+}
+

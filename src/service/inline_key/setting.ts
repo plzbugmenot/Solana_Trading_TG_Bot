@@ -8,8 +8,8 @@ export const getSettingCaption = async (userData: IUser) => {
   const wallet = Keypair.fromSecretKey(bs58.decode(userData.private_key));
   // console.log(userData);
   const solBal = await getWalletBalance(wallet.publicKey);
-  const auto = userData.auto ? "✅" : "❌";
-  const snipe_amnt = userData.snipe_amnt;
+  const auto = userData.swap.auto ? "✅" : "❌";
+  const snipe_amnt = userData.swap.amount_sol;
 
   const inline_keyboard_setting = [
     [
@@ -30,11 +30,11 @@ export const getSettingCaption = async (userData: IUser) => {
     ],
     [
       {
-        text: `💸 Jito_Fee: ${userData.jito_fee} SOL`,
+        text: `💸 Jito_Fee: ${userData.swap.tip_sol} SOL`,
         callback_data: BotCallBack.JITOFEE_COMMAND,
       },
       {
-        text: `⚖ Slippage: ${userData.slippage} %`,
+        text: `⚖ Slippage: ${userData.swap.slippage} %`,
         callback_data: BotCallBack.SLIPPAGE_COMMAND,
       },
     ],

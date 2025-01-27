@@ -145,7 +145,7 @@ export const buySwap = async (
 
   const wallet = Keypair.fromSecretKey(bs58.decode(private_key));
   const solBal = await connection.getBalance(wallet.publicKey);
-  const _tip_tmp = userData?.jito_fee??0;
+  const _tip_tmp = userData.swap.tip_sol;
   if (Number(solBal) <= swapAmount + _tip_tmp + 0.0003) {
     const res_msg = `⚠️ You don't have enough SOL to complete this transaction.⚠️\n Please top up your SOL balance.\nCurrent SOL balance: ${solBal} SOL`;
     await bot.sendMessage(chat_id, `${res_msg}`);
@@ -159,8 +159,8 @@ export const buySwap = async (
     private_key: private_key,
     mint: new PublicKey(ca),
     amount: swapAmount,
-    slippage: userData?.slippage??0,
-    tip: userData?.jito_fee??0,
+    slippage: userData.swap.slippage,
+    tip: userData.swap.tip_sol,
     is_buy: true,
     referredUsers: referredUsers || [],
   };
@@ -178,5 +178,4 @@ export const buySwap = async (
     outAmount
   )} token\n 🔗 tx: ${txHash}`;
   await msgService.saveMessage(swapMsgId, chat_id, ca, res_msg);
-  await userService.addCA(userData.userid, ca);
 };

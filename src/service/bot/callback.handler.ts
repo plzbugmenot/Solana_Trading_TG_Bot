@@ -78,7 +78,7 @@ export const callbackQueryHandler = async (
         Set_COMMAND = BotCaption.SET_SLIPPAGE;
         break;
       case BotCallBack.AUTO_COMMAND:
-        await userService.updateAutoSetting(chatId, !userData.auto);
+        await userService.updateAutoMode(chatId, !userData.swap.auto);
         const updated_userData = await userService.getUserById(chatId);
         if (!updated_userData) return;
         const inline_keyboard = await getSettingCaption(updated_userData);
@@ -90,7 +90,7 @@ export const callbackQueryHandler = async (
             chat_id: chatId,
           }
         );
-        Set_COMMAND = updated_userData.auto
+        Set_COMMAND = updated_userData.swap.auto
           ? BotCaption.AUTO_SWAP_ON
           : BotCaption.AUTO_SWAP_OFF;
         break;

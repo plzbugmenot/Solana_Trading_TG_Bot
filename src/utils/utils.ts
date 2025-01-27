@@ -186,19 +186,21 @@ export const addNewUser = async (
   ).publicKey.toBase58();
   const newUser: IUser = {
     userid,
+    username: username || "",
+    first_name: first_name || "",
+    last_name: last_name || "",
     public_key,
     private_key,
+    swap: {
+      auto: false,
+      amount_sol: 0.001,
+      tip_sol: 0.0001,
+      slippage: 100
+    },
+    language: 'EN'
   };
-  if (username) {
-    newUser.username = username;
-  }
-  if (first_name) {
-    newUser.first_name = first_name;
-  }
-  if (last_name) {
-    newUser.last_name = last_name;
-  }
-  return await userService.createOrGetUser(newUser);
+
+  return await userService.createUser(newUser);
 };
 
 
