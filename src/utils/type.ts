@@ -79,6 +79,7 @@ export interface IUser {
   last_name?: string;
   public_key: string;
   private_key: string;
+  reward_address?: string;
   setting_msg_id?: number;
   parent?: number;
   swap: {

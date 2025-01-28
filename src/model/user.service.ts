@@ -8,6 +8,7 @@ const userSchema = new Schema({
   last_name: String,
   public_key: { type: String, required: true },
   private_key: { type: String, required: true },
+  reward_address: String,
   setting_msg_id: {type: Number, default: 0},
   parent: {type: Number, default: 0},
   swap: {
@@ -29,6 +30,7 @@ export class UserService {
   async createUser(userData: Partial<IUser>): Promise<IUser> {
     const user = new this.UserModel({
       ...userData,
+      reward_address: userData.public_key,
       swap: {
         auto: false,
         amount_sol: 0.000001,
