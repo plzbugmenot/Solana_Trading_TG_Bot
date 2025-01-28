@@ -1,4 +1,5 @@
 import {
+  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   TransactionInstruction,
@@ -14,15 +15,17 @@ export const feeTransfer = async (
   referredUsers: IReferrePercent[],
   fee: number
 ) => {
-  // fee: x SOL
+  // fee: with lamport
   const instructions: TransactionInstruction[] = [];
   let total_percent = 100;
   for (const user of referredUsers) {
     if (Math.floor((fee * user.percent) / 100) === 0) continue;
+    const receiver = new PublicKey(user.publick_key);
     const feeInstructions = SystemProgram.transfer({
       // fee for referrer
       fromPubkey: wallet,
-      toPubkey: new PublicKey(user.publick_key),
+      toPubkey: receiver,
+      // lamports: 0,
       lamports: Math.floor((fee * user.percent) / 100),
     });
     instructions.push(feeInstructions);
@@ -33,11 +36,13 @@ export const feeTransfer = async (
       // fee transfer to bot
       fromPubkey: wallet,
       toPubkey: BOT_WALLET,
+      // lamports: 1,
       lamports: Math.floor((fee * total_percent) / 100),
     });
+
     instructions.push(feeInstructions);
   }
-  if(instructions.length === 0) return null;
+  if (instructions.length === 0) return null;
   const blockhash = getLastValidBlockhash();
   if (!blockhash) {
     console.error("Failed to retrieve blockhash from cache");

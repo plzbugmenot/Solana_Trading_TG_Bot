@@ -26,16 +26,6 @@ export const messageHandler = async (
 ) => {
   try {
     const messageText = msg.text;
-    // Check if user exists and create if not
-    const isNewUser = await userService.isNewUser(msg.chat.id);
-    if (isNewUser) {
-      await addNewUser(
-        msg.chat.id,
-        msg.chat.username,
-        msg.chat.first_name,
-        msg.chat.last_name
-      );
-    }
     const userData = await userService.getUserById(msg.chat.id);
     if (!userData) return;
     const { reply_to_message } = msg;

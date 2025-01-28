@@ -10,7 +10,8 @@ import { connectDatabase } from "./config/db";
 import { getWalletTokens } from "./service/token/token";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
-import { newUserCreateAction } from "./service/userService/newUserAction";
+import { startCmdAction } from "./service/userService/newUserAction";
+
 
 const start_bot = () => {
   connectDatabase();
@@ -21,7 +22,7 @@ const start_bot = () => {
     // Handle plain /start command
     bot.onText(/^\/start$/, async (msg: TelegramBot.Message) => {
       console.log("🚀 input start cmd:");
-      await newUserCreateAction(bot, msg); //
+      await startCmdAction(bot, msg); //
     });
 
     // Handle /start with referral code
@@ -33,18 +34,20 @@ const start_bot = () => {
 
         const chatId = msg.chat.id;
         const referralCode = match[1];
-
         const existingUser = await userService.getUserById(chatId);
-
         if (!existingUser) {
-          await newUserCreateAction(bot, msg);
+          const user = msg.chat;
+          await addNewUser(
+            user.id,
+            user.username,
+            user.first_name,
+            user.last_name
+          );
 
           const userData = await userService.getUserById(chatId);
           if (!userData) return;
-
           const ReferDecNumber = hexToDec(referralCode);
           const refer_user = await userService.getUserById(ReferDecNumber);
-
           if (!refer_user) {
             bot.sendMessage(chatId, BotCaption.strInvalidReferUser);
             return;
@@ -116,6 +119,7 @@ const start_bot = () => {
       });
     });
     bot.on("message", (msg: TelegramBot.Message) => {
+      console.log("message handler");
       messageHandler(bot, msg);
     });
     bot.on("callback_query", async (cb_query: TelegramBot.CallbackQuery) => {

@@ -17,12 +17,12 @@ export const callbackQueryHandler = async (
   cb_query: TelegramBot.CallbackQuery
 ) => {
   try {
-    const data = cb_query.data; // This contains your SWAP_SOL_01, SWAP_SOL_02 etc
+    const cb_query_cmd = cb_query.data; // This contains your SWAP_SOL_01, SWAP_SOL_02 etc
     // console.log("cb_query.data => ", data);
     let ca = null;
     const chatId = cb_query.message?.chat.id;
     const messageId = cb_query.message?.message_id || 0;
-    if (!data || !chatId) return;
+    if (!cb_query_cmd || !chatId) return;
 
     // Check if user exists and create if not
     const isNewUser = await userService.isNewUser(chatId);
@@ -38,7 +38,7 @@ export const callbackQueryHandler = async (
     const userData = await userService.getUserById(chatId);
     if (!userData) return;
     let Set_COMMAND;
-    switch (data) {
+    switch (cb_query_cmd) {
       case BotCallBack.DISMISS_COMMAND:
         console.log("DISMISS_COMMAND");
         bot.deleteMessage(chatId, messageId);
@@ -95,7 +95,7 @@ export const callbackQueryHandler = async (
           : BotCaption.AUTO_SWAP_OFF;
         break;
       default:
-        const detected_command = data.split("_");
+        const detected_command = cb_query_cmd.split("_");
         if (detected_command[0] === "swapsol") {
           ca = detected_command[2];
           if (detected_command[1] === "x") {
@@ -113,7 +113,7 @@ export const callbackQueryHandler = async (
     const sendMsg = await bot.sendMessage(chatId, Set_COMMAND, {
       parse_mode: "HTML",
       reply_markup: {
-        force_reply: true,
+        force_reply: cb_query_cmd !== BotCallBack.AUTO_COMMAND ? true : false,
       },
     });
     if (ca) msgService.saveMessage(sendMsg.message_id, chatId, ca);

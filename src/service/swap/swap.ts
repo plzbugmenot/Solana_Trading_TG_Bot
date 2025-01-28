@@ -7,7 +7,13 @@ import {
 import { raydiumSwapTxn } from "./raydium/raydium.swap";
 import { JitoBundleService } from "./jito/jito";
 import { pumpfunSwap } from "./pumpfun/pumpfun";
-import { IReferrePercent, IUser, PumpData, SwapParam } from "../../utils/type";
+import {
+  IReferrePercent,
+  ISwapTxn,
+  IUser,
+  PumpData,
+  SwapParam,
+} from "../../utils/type";
 import { jupiterSwapTxn } from "./jupiter/jupiter";
 import bs58 from "bs58";
 import {
@@ -21,6 +27,7 @@ import {
   BOT_FEE_PERCENT,
   connection,
   msgService,
+  txnService,
   USER_DISCOUNT_PERCENT,
   userService,
 } from "../../config/config";
@@ -28,13 +35,18 @@ import { sendSwapTxMsg } from "../bot/message.handler";
 import TelegramBot from "node-telegram-bot-api";
 import { BotCaption } from "../../config/constants";
 import { feeTransfer } from "./feeTransfer";
+import { get } from "mongoose";
+import { getCachedSolPrice } from "./getBlock";
+import { SwapTxnService } from "../../model/txn.service";
 interface SwapResponse {
   txHash: string | null;
   inAmount: number | 0;
   outAmount: number | 0;
 }
 const swap = async (swapParam: SwapParam): Promise<SwapResponse> => {
+  console.log("in swap func", swapParam);
   const { private_key, tip, is_buy, referredUsers } = swapParam;
+  console.log(private_key);
   const wallet = Keypair.fromSecretKey(bs58.decode(private_key));
 
   try {
@@ -71,22 +83,20 @@ const swap = async (swapParam: SwapParam): Promise<SwapResponse> => {
     }
     const total_percent =
       (BOT_FEE_PERCENT * (100 - USER_DISCOUNT_PERCENT)) / 100 / 100; // 0.9%
-    const fee = is_buy ? inAmount * total_percent : outAmount * total_percent;
-    const walletBalance = await getWalletBalance(wallet.publicKey);
-    if (fee + tip + inAmount + 0.003 > Number(walletBalance) && is_buy) {
+    const fee = is_buy ? inAmount * total_percent : outAmount * total_percent; // inamount, outamount with decimal
+    const walletBalance = await getWalletBalance(wallet.publicKey); // no ramport sol 3.512345
+    if ((fee + tip + inAmount) / LAMPORTS_PER_SOL + 0.003 > Number(walletBalance) && is_buy) {
       // buy swap wallet balance check
-      console.log("Not enough SOL for fee");
       return {
         txHash: null,
         inAmount: 0,
         outAmount: 0,
       };
     }
-
     const feeTxn = await feeTransfer(
       wallet.publicKey,
       referredUsers,
-      fee * LAMPORTS_PER_SOL
+      fee
     ); // fee transfer
     let vTxns = [vTxn];
     if (feeTxn) {
@@ -98,7 +108,6 @@ const swap = async (swapParam: SwapParam): Promise<SwapResponse> => {
     await simulateTxn(vTxn);
     const txHash = await confirmVtxn(vTxns); // return tx hash
     if (txHash === null) {
-      console.log("Failed to confirm txn");
       return {
         txHash: null,
         inAmount: 0,
@@ -112,7 +121,7 @@ const swap = async (swapParam: SwapParam): Promise<SwapResponse> => {
       outAmount,
     };
   } catch (e: any) {
-    console.log("Error while swap txn", e.message || "");
+    console.log("Error while swap txn", e || "");
     return {
       txHash: null,
       inAmount: 0,
@@ -142,9 +151,10 @@ export const buySwap = async (
 ) => {
   const private_key = userData?.private_key;
   if (!private_key) return;
-
+  console.log("buyswap func", userData);
   const wallet = Keypair.fromSecretKey(bs58.decode(private_key));
   const solBal = await connection.getBalance(wallet.publicKey);
+  console.log("wallet.publicKey", wallet.publicKey.toBase58(), solBal);
   const _tip_tmp = userData.swap.tip_sol;
   if (Number(solBal) <= swapAmount + _tip_tmp + 0.0003) {
     const res_msg = `⚠️ You don't have enough SOL to complete this transaction.⚠️\n Please top up your SOL balance.\nCurrent SOL balance: ${solBal} SOL`;
@@ -153,8 +163,7 @@ export const buySwap = async (
   }
   const referredUsers: IReferrePercent[] =
     (await getReferredUsers(userData.userid)) || [];
-  console.log("referredUsers: ", referredUsers);
-
+  // const currentSOLPrice = getCachedSolPrice();
   const swapParam: SwapParam = {
     private_key: private_key,
     mint: new PublicKey(ca),
@@ -164,18 +173,31 @@ export const buySwap = async (
     is_buy: true,
     referredUsers: referredUsers || [],
   };
-  // console.log("5");
+  console.log("1");
   const { txHash, inAmount, outAmount } = await swap(swapParam);
+
   if (!txHash) {
     await bot.sendMessage(chat_id, BotCaption.SWAP_FAILED);
     return;
   }
-  // console.log("6");
   const swapMsgId = await sendSwapTxMsg(bot, chat_id, txHash);
-  // console.log("7");
   // const res_msg = `💰 Swap ${swapAmount} SOL successfully! 💰\n\n🔗 tx: ${txHash}`;
   const res_msg = `💰 Buy swap: ${formatNumber(inAmount)} SOL => ${formatNumber(
     outAmount
   )} token\n 🔗 tx: ${txHash}`;
   await msgService.saveMessage(swapMsgId, chat_id, ca, res_msg);
+  const txn_save_data: ISwapTxn = {
+    userid: userData.userid,
+    txHash: txHash,
+    mint: ca,
+    txTime: Date.now(),
+    swap: {
+      auto: false,
+      token_amount: outAmount,
+      price_usd: 0,
+      swap: "BUY",
+      tip_usd: userData.swap.tip_sol,
+    },
+  };
+  await txnService.saveSwapTxn(txn_save_data);
 };

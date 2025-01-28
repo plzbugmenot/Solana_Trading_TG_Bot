@@ -42,7 +42,7 @@ export const pumpfunSwap = async (
   swapParam: SwapParam
 ): Promise<ISwapTxResponse | null> => {
   const { private_key, mint, amount, slippage, tip, is_buy } = swapParam;
-  const wallet = new PublicKey(Keypair.fromSecretKey(bs58.decode(private_key)));
+  const wallet = Keypair.fromSecretKey(bs58.decode(private_key));
   const pumpTokenData = await getPumpData(new PublicKey(mint));
   if (!pumpTokenData) {
     console.log("Not found token on Pumpfun");
@@ -57,10 +57,14 @@ export const pumpfunSwap = async (
 
   const solAta = spl.getAssociatedTokenAddressSync(
     spl.NATIVE_MINT,
-    wallet,
+    wallet.publicKey,
     true
   );
-  const splAta = spl.getAssociatedTokenAddressSync(mint, wallet, true);
+  const splAta = spl.getAssociatedTokenAddressSync(
+    mint,
+    wallet.publicKey,
+    true
+  );
 
   const keys = [
     { pubkey: GLOBAL, isSigner: false, isWritable: false },
@@ -77,7 +81,7 @@ export const pumpfunSwap = async (
       isWritable: true,
     },
     { pubkey: splAta, isSigner: false, isWritable: true },
-    { pubkey: wallet, isSigner: false, isWritable: true },
+    { pubkey: wallet.publicKey, isSigner: false, isWritable: true },
     { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false },
     {
       pubkey: is_buy ? TOKEN_PROGRAM_ID : ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -132,37 +136,41 @@ export const pumpfunSwap = async (
   const instructions: TransactionInstruction[] = is_buy
     ? [
         spl.createAssociatedTokenAccountIdempotentInstruction(
-          wallet,
+          wallet.publicKey,
           solAta,
-          wallet,
+          wallet.publicKey,
           spl.NATIVE_MINT
         ),
         SystemProgram.transfer({
-          fromPubkey: wallet,
+          fromPubkey: wallet.publicKey,
           toPubkey: solAta,
           lamports: amountInLamports,
         }),
         spl.createSyncNativeInstruction(solAta, TOKEN_PROGRAM_ID),
         spl.createAssociatedTokenAccountIdempotentInstruction(
-          wallet,
+          wallet.publicKey,
           splAta,
-          wallet,
+          wallet.publicKey,
           new PublicKey(mint)
         ),
         pumpInstruction,
-        spl.createCloseAccountInstruction(solAta, wallet, wallet),
+        spl.createCloseAccountInstruction(
+          solAta,
+          wallet.publicKey,
+          wallet.publicKey
+        ),
       ]
     : [
         spl.createAssociatedTokenAccountIdempotentInstruction(
-          wallet,
+          wallet.publicKey,
           splAta,
-          wallet,
+          wallet.publicKey,
           new PublicKey(mint)
         ),
         pumpInstruction,
       ];
   const feeInstructions = SystemProgram.transfer({
-    fromPubkey: wallet,
+    fromPubkey: wallet.publicKey,
     toPubkey: new PublicKey(JitoAccounts[1]),
     lamports: tip * LAMPORTS_PER_SOL,
   });
@@ -172,7 +180,7 @@ export const pumpfunSwap = async (
     await connection.getLatestBlockhash();
 
   const messageV0 = new TransactionMessage({
-    payerKey: wallet,
+    payerKey: wallet.publicKey,
     recentBlockhash: blockhash,
     instructions,
   }).compileToV0Message();

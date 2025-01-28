@@ -1,13 +1,14 @@
-import { PublicKey, VersionedTransaction } from "@solana/web3.js";
+import { Keypair, PublicKey, VersionedTransaction } from "@solana/web3.js";
 
 export type SwapParam = {
   private_key: string;
+
   mint: PublicKey;
   amount: number;
   tip: number;
   slippage: number;
   is_buy: boolean;
-  referredUsers: IReferrePercent[]
+  referredUsers: IReferrePercent[];
 };
 
 export type BuyInsParam = {
@@ -68,7 +69,7 @@ export interface ISwapTxn {
     price_usd: number;
     swap: "BUY" | "SELL";
     tip_usd: number;
-  }
+  };
 }
 
 export interface IUser {
@@ -85,7 +86,6 @@ export interface IUser {
     amount_sol: number;
     tip_sol: number;
     slippage: number;
-  }
+  };
   language: "EN" | "CH";
 }
-

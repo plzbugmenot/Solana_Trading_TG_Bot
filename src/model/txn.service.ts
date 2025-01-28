@@ -18,7 +18,7 @@ const swapTxnSchema = new Schema({
 export  class SwapTxnService {
   private SwapTxnModel = mongoose.model<ISwapTxn>("SwapTxn", swapTxnSchema);
 
-  async createSwapTxn(txnData: ISwapTxn): Promise<ISwapTxn> {
+  async saveSwapTxn(txnData: ISwapTxn): Promise<ISwapTxn> {
     const swapTxn = new this.SwapTxnModel(txnData);
     return await swapTxn.save();
   }
