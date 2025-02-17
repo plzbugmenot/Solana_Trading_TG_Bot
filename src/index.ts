@@ -1,49 +1,82 @@
 import TelegramBot from "node-telegram-bot-api";
-import {
-  _is_buy,
-  _slippage,
-  _tip,
-  TG_BOT_TOKEN,
-  userService,
-} from "./config/config";
-import { getSettingCaption } from "./service/setting/setting";
+import { bot, userService } from "./config/config";
+import { getSettingCaption } from "./service/inline_key/setting";
 import { callbackQueryHandler } from "./service/bot/callback.handler";
 import { messageHandler } from "./service/bot/message.handler";
-import { addNewUser, contractLink, shortenAddress } from "./utils/utils";
+import { addNewUser, contractLink, hexToDec } from "./utils/utils";
 import logger from "./logs/logger";
 import { BotCaption, BotMenu } from "./config/constants";
 import { connectDatabase } from "./config/db";
-import { getSnipingTokens, getWalletTokens } from "./service/token/token";
+import { getWalletTokens } from "./service/token/token";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
+import { startCmdAction } from "./service/userService/newUserAction";
+
 
 const start_bot = () => {
   connectDatabase();
   logger.info("🚀 Starting bot...");
-  // Create a bot that uses 'polling' to fetch new updates
-  if (!TG_BOT_TOKEN) return;
   try {
-    const bot = new TelegramBot(TG_BOT_TOKEN, { polling: true });
     bot.setMyCommands(BotMenu);
 
-    bot.onText(/\/start/, async (msg: TelegramBot.Message) => {
-      const username = msg.chat.username;
-      if (!username) return;
-      const isNewUser = await userService.isNewUser(msg.chat.id);
-      if (isNewUser) await addNewUser(msg.chat.id, username);
-      const caption = `🎉 @${msg.chat.username}, ${BotCaption.strWelcome}`;
-      bot.sendMessage(msg.chat.id, caption, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      });
+    // Handle plain /start command
+    bot.onText(/^\/start$/, async (msg: TelegramBot.Message) => {
+      console.log("🚀 input start cmd:");
+      await startCmdAction(bot, msg); //
     });
+
+    // Handle /start with referral code
+    bot.onText(
+      /\/start (.+)/,
+      async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
+        console.log("🚀 input start cmd with referral codeo.");
+        if (!match) return;
+
+        const chatId = msg.chat.id;
+        const referralCode = match[1];
+        const existingUser = await userService.getUserById(chatId);
+        if (!existingUser) {
+          const user = msg.chat;
+          await addNewUser(
+            user.id,
+            user.username,
+            user.first_name,
+            user.last_name
+          );
+
+          const userData = await userService.getUserById(chatId);
+          if (!userData) return;
+          const ReferDecNumber = hexToDec(referralCode);
+          const refer_user = await userService.getUserById(ReferDecNumber);
+          if (!refer_user) {
+            bot.sendMessage(chatId, BotCaption.strInvalidReferUser);
+            return;
+          }
+          if (refer_user.userid === userData.userid) return; // yourself refer
+
+          await userService.setParent(userData.userid, ReferDecNumber);
+          bot.sendMessage(
+            chatId,
+            `👍 You have been joined this bot from @${refer_user.username}`
+          );
+          bot.sendMessage(
+            refer_user.userid,
+            `@${userData.username} has referred you.`
+          );
+        }
+      }
+    );
 
     bot.onText(/\/setting/, async (msg: TelegramBot.Message) => {
       try {
-        const username = msg.chat.username;
-        if (!username) return;
         const isNewUser = await userService.isNewUser(msg.chat.id);
-        if (isNewUser) await addNewUser(msg.chat.id, username);
+        if (isNewUser)
+          await addNewUser(
+            msg.chat.id,
+            msg.chat.username,
+            msg.chat.first_name,
+            msg.chat.last_name
+          );
         const userData = await userService.getUserById(msg.chat.id);
         if (!userData) return;
         const inline_keyboard = await getSettingCaption(userData);
@@ -86,6 +119,7 @@ const start_bot = () => {
       });
     });
     bot.on("message", (msg: TelegramBot.Message) => {
+      console.log("message handler");
       messageHandler(bot, msg);
     });
     bot.on("callback_query", async (cb_query: TelegramBot.CallbackQuery) => {

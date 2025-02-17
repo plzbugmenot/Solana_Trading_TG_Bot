@@ -1,19 +1,19 @@
 import TelegramBot from "node-telegram-bot-api";
-import { getSettingCaption } from "../setting/setting";
+import { getSettingCaption } from "../inline_key/setting";
 import {
   AutoSwapAmount,
   BotCallBack,
   BotCaption,
 } from "../../config/constants";
 import {
+  addNewUser,
   getTokenInfoFromMint,
+  hexToDec,
+  isReferralLink,
   isValidSolanaAddress,
   txnLink,
 } from "../../utils/utils";
 import {
-  _is_buy,
-  _slippage,
-  _tip,
   msgService,
   userService,
 } from "../../config/config";
@@ -45,24 +45,24 @@ export const messageHandler = async (
         switch (text) {
           case BotCaption.SET_JITOFEE.replace(/<[^>]*>/g, ""):
             // console.log("SET_JITOFEE", value);
-            userData.jito_fee = value;
-            await userService.updateUser(msg.chat.id, {
-              jito_fee: value,
+            userData.swap.tip_sol = value;
+            await userService.updateSwapSettings(msg.chat.id, {
+              tip_sol: value,
             });
             res_msg = `Set to ${value}`;
             break;
           case BotCaption.SET_SNIPE_AMOUNT.replace(/<[^>]*>/g, ""):
             // console.log("SET_SNIPE_AMOUNT", value);
-            userData.snipe_amnt = value;
-            await userService.updateUser(msg.chat.id, {
-              snipe_amnt: value,
+            userData.swap.amount_sol = value;
+            await userService.updateSwapSettings(msg.chat.id, {
+              amount_sol: value,
             });
             res_msg = `Set to ${value}`;
             break;
           case BotCaption.SET_SLIPPAGE.replace(/<[^>]*>/g, ""):
             // console.log("SET_SLIPPAGE", value);
-            userData.slippage = value;
-            await userService.updateUser(msg.chat.id, {
+            userData.swap.slippage = value;
+            await userService.updateSwapSettings(msg.chat.id, {
               slippage: value,
             });
             res_msg = `Set to ${value}`;
@@ -89,6 +89,7 @@ export const messageHandler = async (
       }
       if (!isSwap) {
         const updated_userData = await userService.getUserById(userData.userid);
+        if (!updated_userData) return;
         const inline_keyboard = await getSettingCaption(updated_userData);
         const settingMsgId = userData.setting_msg_id;
         const m_g = await bot.sendMessage(msg.chat.id, `Set as ${res_msg}`);
@@ -106,14 +107,32 @@ export const messageHandler = async (
     } else {
       const isCA = await isValidSolanaAddress(messageText);
       if (isCA) {
-        const auto = userService.getAutoSetting(userData.userid);
+        const auto = userData.swap.auto;
         if (auto) {
-          const swapAmount = userData.snipe_amnt;
+          const swapAmount = userData.swap.amount_sol;
           console.log("auto swap", swapAmount);
+
           buySwap(bot, msg.chat.id, userData, swapAmount, messageText);
         } else await sendTokenInfoMsg(bot, msg.chat.id, messageText);
-      } else {
+      } else if (isReferralLink(messageText)) {
         // bot.sendMessage(chatId, BotCaption.strInvalidSolanaTokenAddress);
+        const ReferDecNumber = hexToDec(messageText.split("?start=")[1]);
+        if (userData.parent) {
+          bot.sendMessage(msg.chat.id, BotCaption.strAlreadyRefer);
+          return;
+        }
+        const refer_user = await userService.getUserById(ReferDecNumber);
+        if (!refer_user) {
+          bot.sendMessage(msg.chat.id, BotCaption.strInvalidReferUser);
+          return;
+        }
+        await userService.setParent(userData.userid, ReferDecNumber);
+        bot.sendMessage(msg.chat.id, BotCaption.strReferSuccess);
+        bot.sendMessage(
+          refer_user.userid,
+          `@${userData.username} has referred you.`
+        );
+      } else {
         return;
       }
     }
@@ -181,7 +200,7 @@ export const sendSwapTxMsg = async (
 ${txnLink(txHash)}`;
   const swapAlarm = await bot.sendMessage(chatId, msg, {
     parse_mode: "HTML",
-    disable_web_page_preview: false,
+    disable_web_page_preview: true,
   });
   return swapAlarm.message_id;
 };

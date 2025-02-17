@@ -10,6 +10,10 @@ export enum BotCallBack {
   DISMISS_COMMAND = "dismiss_message",
   AUTO_COMMAND = "auto_message",
   AUTO_AMOUNT_COMMAND = "auto_amount_message",
+  SETTING_COMMAND = "setting_message",
+  COPY_TRADING_COMMAND = "copy_trading_message",
+  LANGUAGE_COMMAND = "language_message",
+  SNIPER_COMMAND = "sniper_message",
 
   SWAP_SOL_01 = "swapsol_1",
   SWAP_SOL_02 = "swapsol_2",
@@ -23,7 +27,7 @@ export enum BotCaption {
 
   HelpCaption = `🚀 TG Solana Trading Bot 🚀`,
 
-  strWelcome = `<b>Welcome to Solana Trading bot</b> 🎉\n\nThe Unique Solana Trading Bot.\n`,
+  strWelcome = `<b>Welcome to Solana Trading bot</b> 🎉\n`,
 
   SET_JITOFEE = `💸 Jito Tip SOL Amount \n\n<i>💲 Enter SOL Value in format "0.0X"</i>`,
   SET_SNIPE_AMOUNT = `💰 Snipe Amount \n\n<i>💲 Enter Snipe Amount in format "0.0X"</i>`,
@@ -36,6 +40,10 @@ export enum BotCaption {
 
   AUTO_SWAP_ON = "🔔 Auto Swap ON",
   AUTO_SWAP_OFF = "🔕 Auto Swap OFF",
+
+  strAlreadyRefer = `👍 You have already referred a friend.`,
+  strReferSuccess = `👍 You have successfully referred a friend.`,
+  strInvalidReferUser = `⚠️ Invalid User ⚠️`,
 }
 
 export const HTML_MODE = { parse_mode: "HTML" };

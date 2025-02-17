@@ -42,13 +42,3 @@ export async function getWalletTokens(wallet: Keypair) {
 │ 1       │ '4QFtsuiTQHug2b5ZxsTUUrn1N1nf63s1j2157oeypump' │ 357.666547 │
 │ 2       │ 'G8sRq12bKmPzsbmFBka3fH6hhTieM6YexytErehhpump' │ 357.666547 │
 */
-
-export async function getSnipingTokens(userid: number, wallet: Keypair) {
-  
-  const walletTokens = await getWalletTokens(wallet);
-  const snipingList = await userService.getUserCAs(userid);
-  const snipingTokens = walletTokens.filter((token) =>
-    snipingList.includes(token.mint.toString())
-  );
-  return snipingTokens;
-}

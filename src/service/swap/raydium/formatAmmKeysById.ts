@@ -147,7 +147,7 @@ async function decodePoolAndMarketInfo(
     lookupTableAccount: PublicKey.default.toString(),
   };
 
-  console.log("- Full pool data:", poolData);
+  // console.log("- Full pool data:", poolData);
 
   return poolData;
 }

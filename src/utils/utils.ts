@@ -3,17 +3,26 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
+  Transaction,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { connection, metaplex, userService } from "../config/config";
+import {
+  connection,
+  INVITE_LINK_HEADER,
+  metaplex,
+  REFER_PERCENT,
+  userService,
+} from "../config/config";
 import {
   SPL_ACCOUNT_LAYOUT,
   TOKEN_PROGRAM_ID,
   TokenAccount,
 } from "@raydium-io/raydium-sdk";
 import { BN } from "bn.js"; // Import BN class as a value
-import { PumpData, UserData } from "./type";
+import { IReferrePercent, IUser, PumpData } from "./type";
+import axios from "axios";
 import bs58 from "bs58";
+import logger from "../logs/logger";
 
 export const formatNumber = (num: number): string => {
   if (typeof num !== "number" || isNaN(num)) return "0";
@@ -74,6 +83,11 @@ export const isValidSolanaAddress = async (ca: string) => {
   const contractAddressMatch = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
   return contractAddressMatch.test(ca);
+};
+
+export const isReferralLink = (text: string): boolean => {
+  const referralPattern = /^https:\/\/t\.me\/zeussolbot\?start=[\w\d]+$/;
+  return referralPattern.test(text);
 };
 
 export async function getWalletTokenAccount(
@@ -160,17 +174,102 @@ export async function simulateTxn(txn: VersionedTransaction) {
   }
 }
 
-export const addNewUser = async (userid: number, username: string) => {
+export const addNewUser = async (
+  userid: number,
+  username?: string,
+  first_name?: string,
+  last_name?: string
+) => {
   const private_key = bs58.encode(Keypair.generate().secretKey);
-  const newUser: UserData = {
+  const public_key = Keypair.fromSecretKey(
+    bs58.decode(private_key)
+  ).publicKey.toBase58();
+  const newUser: IUser = {
     userid,
-    username,
+    username: username || "",
+    first_name: first_name || "",
+    last_name: last_name || "",
+    public_key,
     private_key,
-    snipe_amnt: 0.000001,
-    jito_fee: 0.000001,
-    slippage: 100,
+    swap: {
+      auto: false,
+      amount_sol: 0.001,
+      tip_sol: 0.0001,
+      slippage: 100
+    },
+    language: 'EN'
   };
-  await userService.createUser(newUser);
+
+  return await userService.createUser(newUser);
+};
+
+
+export const getTokenCAFromPoolId = async (poolId: string): Promise<string | null> => {
+  try {
+    // Try dexscreener API first
+    const response = await axios.get(`https://api.dexscreener.com/latest/dex/pairs/solana/${poolId}`);
+
+    if (response.data && response.data.pairs && response.data.pairs[0]) {
+      const pair = response.data.pairs[0];
+      // Return the token address (usually the baseToken is the one we're interested in)
+      return pair.baseToken.address;
+    }
+  } catch (error) {
+    console.log("Error fetching pool info:", error);
+  }
+  return null;
+};
+
+export const extractCAFromText = async (text: string): Promise<string | null> => {
+  // First, try to find a direct Solana address
+  const solanaAddressRegex = /[1-9A-HJ-NP-Za-km-z]{32,44}/g;
+  const words = text.split(/[\s\n]+/);
+
+  // Try to find direct CA first
+  for (const word of words) {
+    // Remove any URL parameters or trailing slashes
+    const cleanWord = word.split('?')[0].replace(/\/$/, '');
+
+    // Extract potential CA from various non-dex URL formats
+    let potentialCA = cleanWord;
+
+    // Handle other URL formats (pump.fun, solscan, birdeye)
+    if (cleanWord.includes('/')) {
+      if (cleanWord.includes('pump.fun') || 
+          cleanWord.includes('solscan.io') ||
+          cleanWord.includes('birdeye.so')) {
+        potentialCA = cleanWord.split('/').pop() || '';
+      }
+    }
+
+    // Check if the extracted text matches Solana address pattern
+    if (potentialCA.match(solanaAddressRegex)) {
+      // Verify it's a valid Solana address
+      if (await isValidSolanaAddress(potentialCA)) {
+        return potentialCA;
+      }
+    }
+  }
+
+  // If no direct CA found, try to find dexscreener/dextools links with solana
+  const dexscreenerRegex = /https?:\/\/dexscreener\.com\/solana\/([A-Za-z0-9]+)/i;
+  const dextoolsRegex = /https?:\/\/(?:www\.)?dextools\.io\/app\/[^/]+\/solana\/(?:pair|pool)-explorer\/([A-Za-z0-9]+)/i;
+
+  // Check for dexscreener link
+  const dexscreenerMatch = text.match(dexscreenerRegex);
+  if (dexscreenerMatch && dexscreenerMatch[1]) {
+    const tokenCA = await getTokenCAFromPoolId(dexscreenerMatch[1]);
+    if (tokenCA) return tokenCA;
+  }
+
+  // Check for dextools link
+  const dextoolsMatch = text.match(dextoolsRegex);
+  if (dextoolsMatch && dextoolsMatch[1]) {
+    const tokenCA = await getTokenCAFromPoolId(dextoolsMatch[1]);
+    if (tokenCA) return tokenCA;
+  }
+
+  return null;
 };
 
 export const txnLink = (txn: string) => {
@@ -194,3 +293,78 @@ export const dextoolLink = (mint: string) => {
 export const shortenAddress = (address: string, chars = 4): string => {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`;
 };
+
+export const decToHex = (decNumber: number): string => {
+  return `${decNumber.toString(16)}`;
+};
+
+export const hexToDec = (hexString: string): number => {
+  // Remove '0x' prefix if present
+  const cleanHex = hexString.replace("0x", "");
+  return parseInt(cleanHex, 16);
+};
+
+export const generateReferalLink = (userid: number) => {
+  const ref = decToHex(userid);
+  return `${INVITE_LINK_HEADER}?start=${ref}`;
+};
+
+export const getReferredUsers = async (userid: number) => {
+  let referredUsers: IReferrePercent[] = [];
+  let idx = 0;
+  const user = await userService.getUserById(userid);
+  if (!user) return [];
+  let tmpUserId = user.parent;
+  try {
+    while (tmpUserId && idx < 5) {
+      console.log(idx, tmpUserId);
+      const user = await userService.getUserById(tmpUserId);
+      if (user && user.userid !== userid) {
+        // console.log("user: ", user);
+        referredUsers.push({
+          publick_key: user.public_key,
+          percent: REFER_PERCENT[idx],
+        });
+        tmpUserId = user.parent;
+        idx++;
+      } else {
+        console.log("user not found");
+        break;
+      }
+    }
+    return referredUsers;
+  } catch (error: any) {
+    console.log("getReferredUsers: ", error);
+    return [];
+  }
+};
+
+export const getTokenPriceFromJupiter = async (ca: string) => {
+  try {
+    const BaseURL = `https://api.jup.ag/price/v2?ids=${ca}`;
+
+    const response = await fetch(BaseURL);
+    const data = await response.json();
+    // console.log("data", data);
+    const price = data.data[ca]?.price;
+    return price;
+  } catch (error) {
+    logger.error("Error fetching token price from Jupiter: " + error);
+    return 0;
+  }
+};
+
+export function getSignatureFromTransaction(
+  transaction: Transaction | VersionedTransaction
+): string {
+  const signature =
+    "signature" in transaction
+      ? transaction.signature
+      : transaction.signatures[0];
+  if (!signature) {
+    throw new Error(
+      "Missing transaction signature, the transaction was not signed by the fee payer"
+    );
+  }
+  return bs58.encode(signature);
+}
